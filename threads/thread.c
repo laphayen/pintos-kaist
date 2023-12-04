@@ -281,6 +281,8 @@ void
 thread_exit (void) {
 	ASSERT (!intr_context ());
 
+	printf("thread is exited \n");
+
 #ifdef USERPROG
 	process_exit ();
 #endif
@@ -302,8 +304,9 @@ thread_yield (void) {
 	ASSERT (!intr_context ());
 
 	old_level = intr_disable ();
-	if (curr != idle_thread)
+	if (curr != idle_thread) {
 		list_push_back (&ready_list, &curr->elem);
+	}
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
 }
@@ -409,6 +412,8 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	t->priority = priority;
 	t->magic = THREAD_MAGIC;
+	// printf("%d \n", PGSIZE);
+	// printf("Check init_thread\n");
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
