@@ -28,6 +28,10 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
+/* Alarm Clock */
+/* List of processes in THREAD_SLEEP state */
+static struct list sleep_list;
+
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -109,6 +113,9 @@ thread_init (void) {
 	lock_init (&tid_lock);
 	list_init (&ready_list);
 	list_init (&destruction_req);
+
+	/* Alarm Clock */
+	list_init(&sleep_list);
 
 	/* Set up a thread structure for the running thread. */
 	initial_thread = running_thread ();
@@ -307,6 +314,7 @@ thread_yield (void) {
 	if (curr != idle_thread) {
 		list_push_back (&ready_list, &curr->elem);
 	}
+	
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
 }
@@ -592,4 +600,45 @@ allocate_tid (void) {
 	lock_release (&tid_lock);
 
 	return tid;
+}
+
+void
+thread_sleep (int64_t ticks) {
+	struct thread *curr;
+	enum intr_level old_level;
+
+	ASSERT (!intr_context ());
+
+	old_level = intr_disable ();
+
+	ASSERT(curr != idle_thread);
+	
+	curr->wake_ticks = ticks;
+	list_insert_ordered(&sleep_list, &curr->elem, cmp_threads_ticks, NULL);
+
+	thread_block();
+
+	intr_set_level (old_level);
+}
+
+void
+thread_awake (int64_t ticks) {
+	struct thread *curr;
+	enum intr_level old_level;
+
+	ASSERT (!intr_context());
+
+	old_level = intr_disable();
+
+	ASSERT(curr != idle_thread);
+
+	intr_set_level (old_level);
+}
+
+void 
+cmp_threads_ticks (const struct list_elem *elem1, const struct list_elem *elem2, void * aux UNUSED) {
+	struct thread *elem_tick1 = list_entry(elem1, struct thread, elem);
+	struct thread *elem_tick2 = list_entry(elem2, struct thread, elem);
+
+	return elem_tick1->wake_ticks < elem_tick2->wake_ticks;
 }

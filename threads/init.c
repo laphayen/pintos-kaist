@@ -120,6 +120,8 @@ main (void) {
 
 	/* Run actions specified on kernel command line. */
 	run_actions (argv);
+	
+	printf("🌊run_actions\n");
 
 	/* Finish up. */
 	if (power_off_when_done)
