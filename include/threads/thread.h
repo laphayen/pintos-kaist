@@ -96,7 +96,7 @@ struct thread {
 	struct list_elem elem;              /* List element. */
 
 	/* Alarm Clock */
-	int64_t wake_ticks; // 스레드가 일어날 시간
+	int64_t wakeup_ticks; // 스레드가 일어날 시간
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */

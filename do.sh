@@ -19,10 +19,10 @@ PRIORITY_CONDVAR="pintos -v -k -T 60 -m 20   --fs-disk=10  --swap-disk=4 -- -q  
 PRIORITY_DONATE_CHAIN="pintos -v -k -T 60 -m 20   --fs-disk=10  --swap-disk=4 -- -q  -threads-tests -f run priority-donate-chain"
 COW_SIMPLE="pintos -v -k -T 60 -m 20   --fs-disk=10 -p tests/vm/cow/cow-simple:cow-simple --swap-disk=4 -- -q   -f run cow-simple"
 
-cd userprog
+cd threads
 make clean
 make
 cd build
 source ../../activate
 
-$ALARM_SINGLE
+pintos -v -- -q run alarm-multiple

@@ -97,8 +97,8 @@ timer_sleep (int64_t ticks) {
 	// while (timer_elapsed (start) < ticks)
 	// 	thread_yield ();
 
+	/* Alarm Clock */
 	thread_sleep(start + ticks);
-	
 }
 
 /* Suspends execution for approximately MS milliseconds. */

@@ -604,7 +604,7 @@ allocate_tid (void) {
 
 void
 thread_sleep (int64_t ticks) {
-	struct thread *curr;
+	struct thread *curr = thread_current();
 	enum intr_level old_level;
 
 	ASSERT (!intr_context ());
@@ -613,9 +613,9 @@ thread_sleep (int64_t ticks) {
 
 	ASSERT(curr != idle_thread);
 	
-	curr->wake_ticks = ticks;
-	list_insert_ordered(&sleep_list, &curr->elem, cmp_threads_ticks, NULL);
-
+	curr->wakeup_ticks = ticks;
+	
+	list_push_back(&sleep_list, &curr->elem);
 	thread_block();
 
 	intr_set_level (old_level);
@@ -640,5 +640,5 @@ cmp_threads_ticks (const struct list_elem *elem1, const struct list_elem *elem2,
 	struct thread *elem_tick1 = list_entry(elem1, struct thread, elem);
 	struct thread *elem_tick2 = list_entry(elem2, struct thread, elem);
 
-	return elem_tick1->wake_ticks < elem_tick2->wake_ticks;
+	return elem_tick1->wakeup_ticks < elem_tick2->wakeup_ticks;
 }
