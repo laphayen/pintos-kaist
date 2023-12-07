@@ -623,22 +623,30 @@ thread_sleep (int64_t ticks) {
 
 void
 thread_awake (int64_t ticks) {
-	struct thread *curr;
-	enum intr_level old_level;
+	struct list_elem *e = list_begin (&sleep_list);
 
-	ASSERT (!intr_context());
+	enum intr_level old_level;
 
 	old_level = intr_disable();
 
-	ASSERT(curr != idle_thread);
+	while (e != list_end (&sleep_list)) {
+		struct thread *curr = list_entry (e, struct thread, elem);
+		if (curr->wakeup_ticks <= ticks) {
+			e = list_remove (e);
+			thread_unblock (curr);
+		}
+		else {
+			e = list_next (e);
+		}
+	}
 
 	intr_set_level (old_level);
 }
 
 void 
 cmp_threads_ticks (const struct list_elem *elem1, const struct list_elem *elem2, void * aux UNUSED) {
-	struct thread *elem_tick1 = list_entry(elem1, struct thread, elem);
-	struct thread *elem_tick2 = list_entry(elem2, struct thread, elem);
+	struct thread *thread_elem1 = list_entry(elem1, struct thread, elem);
+	struct thread *thread_elem2 = list_entry(elem2, struct thread, elem);
 
-	return elem_tick1->wakeup_ticks < elem_tick2->wakeup_ticks;
+	return thread_elem1->wakeup_ticks < thread_elem2->wakeup_ticks;
 }
