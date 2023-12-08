@@ -613,6 +613,7 @@ thread_sleep (int64_t ticks) {
 
 	ASSERT(curr != idle_thread);
 	
+	// thread를 재울 때 일어날 시간을 저장한다.
 	curr->wakeup_ticks = ticks;
 	
 	list_push_back(&sleep_list, &curr->elem);
@@ -632,7 +633,7 @@ thread_awake (int64_t ticks) {
 	while (e != list_end (&sleep_list)) {
 		struct thread *curr = list_entry (e, struct thread, elem);
 		if (curr->wakeup_ticks <= ticks) {
-			e = list_remove (e);
+			e = list_remove (&curr->elem);
 			thread_unblock (curr);
 		}
 		else {
