@@ -309,9 +309,8 @@ thread_yield (void) {
 	ASSERT (!intr_context ());
 
 	old_level = intr_disable ();
-	if (curr != idle_thread) {
+	if (curr != idle_thread)
 		list_push_back (&ready_list, &curr->elem);
-	}
 	
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
@@ -418,8 +417,6 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	t->priority = priority;
 	t->magic = THREAD_MAGIC;
-	// printf("%d \n", PGSIZE);
-	// printf("Check init_thread\n");
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
@@ -600,6 +597,7 @@ allocate_tid (void) {
 	return tid;
 }
 
+/* Alarm Clock */
 void
 thread_sleep (int64_t ticks) {
 	struct thread *curr = thread_current();
@@ -620,6 +618,7 @@ thread_sleep (int64_t ticks) {
 	intr_set_level (old_level);
 }
 
+/* Alarm Clock */
 void
 thread_awake (int64_t ticks) {
 	struct list_elem *e = list_begin (&sleep_list);
@@ -640,12 +639,4 @@ thread_awake (int64_t ticks) {
 	}
 
 	intr_set_level (old_level);
-}
-
-void 
-cmp_threads_ticks (const struct list_elem *elem1, const struct list_elem *elem2, void * aux UNUSED) {
-	struct thread *thread_elem1 = list_entry(elem1, struct thread, elem);
-	struct thread *thread_elem2 = list_entry(elem2, struct thread, elem);
-
-	return thread_elem1->wakeup_ticks < thread_elem2->wakeup_ticks;
 }
