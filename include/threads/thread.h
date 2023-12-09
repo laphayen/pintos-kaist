@@ -150,6 +150,4 @@ void do_iret (struct intr_frame *tf);
 void thread_sleep(int64_t ticks);
 void thread_awake(int64_t ticks);
 
-void cmp_threads_ticks (const struct list_elem *elem1, const struct list_elem *elem2, void * aux UNUSED);
-
 #endif /* threads/thread.h */
