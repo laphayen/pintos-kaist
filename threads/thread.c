@@ -288,8 +288,6 @@ void
 thread_exit (void) {
 	ASSERT (!intr_context ());
 
-	printf("thread is exited \n");
-
 #ifdef USERPROG
 	process_exit ();
 #endif
