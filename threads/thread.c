@@ -633,7 +633,7 @@ thread_awake (int64_t ticks) {
 	while (e != list_end (&sleep_list)) {
 		struct thread *curr = list_entry (e, struct thread, elem);
 		if (curr->wakeup_ticks <= ticks) {
-			e = list_remove (&curr->elem);
+			e = list_remove (e);
 			thread_unblock (curr);
 		}
 		else {
