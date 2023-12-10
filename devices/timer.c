@@ -127,6 +127,8 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
 	thread_tick ();
+
+	/* Alarm Clcok */
 	thread_awake (ticks);
 }
 
