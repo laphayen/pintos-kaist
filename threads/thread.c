@@ -49,6 +49,9 @@ static long long idle_ticks;    /* # of timer ticks spent idle. */
 static long long kernel_ticks;  /* # of timer ticks in kernel threads. */
 static long long user_ticks;    /* # of timer ticks in user programs. */
 
+/* Alarm Clcok */
+static long long next_tick_to_awake;
+
 /* Scheduling. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
 static unsigned thread_ticks;   /* # of timer ticks since last yield. */
@@ -116,6 +119,7 @@ thread_init (void) {
 
 	/* Alarm Clock */
 	list_init(&sleep_list);
+	next_tick_to_awake = INT64_MAX;
 
 	/* Set up a thread structure for the running thread. */
 	initial_thread = running_thread ();
@@ -609,6 +613,10 @@ thread_sleep (int64_t ticks) {
 
 	ASSERT(curr != idle_thread);
 	
+	if (next_tick_to_awake > ticks) {
+		next_tick_to_awake = ticks;
+	} 
+
 	// thread를 재울 때 일어날 시간을 저장한다.
 	curr->wakeup_ticks = ticks;
 	
@@ -622,6 +630,7 @@ thread_sleep (int64_t ticks) {
 void
 thread_awake (int64_t ticks) {
 	struct list_elem *e = list_begin (&sleep_list);
+	next_tick_to_awake = INT64_MAX;
 
 	enum intr_level old_level;
 
@@ -634,6 +643,9 @@ thread_awake (int64_t ticks) {
 			thread_unblock (curr);
 		}
 		else {
+			if (curr->wakeup_ticks < next_tick_to_awake) {
+				next_tick_to_awake = curr->wakeup_ticks;
+			}
 			e = list_next (e);
 		}
 	}
