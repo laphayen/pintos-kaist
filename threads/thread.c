@@ -602,53 +602,57 @@ allocate_tid (void) {
 }
 
 /* Alarm Clock */
+/* Block the thread, put it into a sleep state, and insert it into the sleep queue for waiting. */
 void
 thread_sleep (int64_t ticks) {
-	struct thread *curr = thread_current();
+	struct thread *curr = thread_current ();
 	enum intr_level old_level;
 
 	ASSERT (!intr_context ());
 
 	old_level = intr_disable ();
 
-	ASSERT(curr != idle_thread);
+	update_next_tick_to_awake (curr->wakeup_ticks = ticks);
 	
-	if (next_tick_to_awake > ticks) {
-		next_tick_to_awake = ticks;
-	} 
-
-	// thread를 재울 때 일어날 시간을 저장한다.
-	curr->wakeup_ticks = ticks;
-	
-	list_push_back(&sleep_list, &curr->elem);
-	thread_block();
+	list_push_back (&sleep_list, &curr->elem);
+	thread_block ();
 
 	intr_set_level (old_level);
 }
 
 /* Alarm Clock */
+/* Find the thread to be woken up from the sleep queue and initiate the wake-up process. */
 void
 thread_awake (int64_t ticks) {
 	struct list_elem *e = list_begin (&sleep_list);
 	next_tick_to_awake = INT64_MAX;
 
 	enum intr_level old_level;
-
-	old_level = intr_disable();
+	old_level = intr_disable ();
 
 	while (e != list_end (&sleep_list)) {
 		struct thread *curr = list_entry (e, struct thread, elem);
 		if (curr->wakeup_ticks <= ticks) {
-			e = list_remove (e);
+			e = list_remove (&curr->elem);
 			thread_unblock (curr);
 		}
 		else {
-			if (curr->wakeup_ticks < next_tick_to_awake) {
-				next_tick_to_awake = curr->wakeup_ticks;
-			}
+			update_next_tick_to_awake(curr->wakeup_ticks);
 			e = list_next (e);
 		}
 	}
 
 	intr_set_level (old_level);
+}
+
+/* Store the minimum value from a collection of threads' tick values. */
+void 
+update_next_tick_to_awake (int64_t ticks) {
+	next_tick_to_awake = (next_thread_to_run > ticks) ? ticks : next_tick_to_awake;
+}
+
+/* Return the minimum tick value. */
+int64_t 
+get_next_tick_to_awake (void) {
+	return next_tick_to_awake;
 }
