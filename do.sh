@@ -25,4 +25,4 @@ make
 cd build
 source ../../activate
 
-$ALARM_SIMULTANEOUS
+$PRIORITY_CHANGE
