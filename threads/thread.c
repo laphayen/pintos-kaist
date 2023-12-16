@@ -322,7 +322,7 @@ thread_yield (void) {
 
 	old_level = intr_disable ();
 	if (curr != idle_thread)
-		list_insert_ordered(&ready_list, &curr->elem, cmp_priority, NULL);
+		list_insert_ordered(&ready_list, &curr->elem, test_max_priority, NULL);
 	
 	do_schedule (THREAD_READY);
 
@@ -564,7 +564,6 @@ do_schedule(int status) {
 	schedule ();
 }
 
-/* schedule에서 문제가 발생 */
 static void
 schedule (void) {
 	struct thread *curr = running_thread ();
