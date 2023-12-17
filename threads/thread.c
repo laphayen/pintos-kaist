@@ -216,10 +216,9 @@ thread_create (const char *name, int priority,
 	t->tf.eflags = FLAG_IF;
 
 	/* Add to run queue. */
-	// 쓰레드를 ready 상태로 만들어 주고
 	thread_unblock (t);
 
-	// 우선순위가 높은 쓰레드를 찾아서 스케줄링한다.
+	/* Priority Scheduling */
 	test_max_priority();
 
 	return tid;
@@ -255,10 +254,8 @@ thread_unblock (struct thread *t) {
 
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
-	// thread를 ready_list에 넣을 때 우선순위로 정렬하기 위해서
-	// 미리 생성한 함수를 사용해서 삽입한다.
-	// list_push_back (&ready_list, &t->elem);
-	list_insert_ordered(&ready_list, &t->elem, test_max_priority, NULL);
+	
+	list_insert_ordered(&ready_list, &t->elem, cmp_priority, NULL);
 
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
@@ -311,6 +308,7 @@ thread_exit (void) {
 	NOT_REACHED ();
 }
 
+/* backtrace error */
 /* Yields the CPU.  The current thread is not put to sleep and
    may be scheduled again immediately at the scheduler's whim. */
 void
@@ -322,13 +320,9 @@ thread_yield (void) {
 
 	old_level = intr_disable ();
 	if (curr != idle_thread)
-		list_insert_ordered(&ready_list, &curr->elem, test_max_priority, NULL);
+		list_insert_ordered(&ready_list, &curr->elem, cmp_priority, NULL);
 	
 	do_schedule (THREAD_READY);
-
-	// 쓰레드가 반환하게 되면 ready_list의 threads에서 가장 높은
-	// 우선순위의 쓰레드가 실행될 수 있도록 해야한다.
-
 
 	intr_set_level (old_level);
 }
