@@ -255,8 +255,9 @@ thread_unblock (struct thread *t) {
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
 	
+	/* Priority Scheduling */
 	list_insert_ordered(&ready_list, &t->elem, cmp_priority, NULL);
-
+	
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
 }
@@ -308,7 +309,6 @@ thread_exit (void) {
 	NOT_REACHED ();
 }
 
-/* backtrace error */
 /* Yields the CPU.  The current thread is not put to sleep and
    may be scheduled again immediately at the scheduler's whim. */
 void
@@ -320,10 +320,10 @@ thread_yield (void) {
 
 	old_level = intr_disable ();
 	if (curr != idle_thread)
+		/* Priority Scheduling */
 		list_insert_ordered(&ready_list, &curr->elem, cmp_priority, NULL);
 	
 	do_schedule (THREAD_READY);
-
 	intr_set_level (old_level);
 }
 
@@ -331,6 +331,7 @@ thread_yield (void) {
 void
 thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
+	/* Priority Scheduling */
 	test_max_priority ();
 }
 
@@ -666,7 +667,7 @@ get_next_tick_to_awake (void) {
 }
 
 /* Priority Scheduling */
-/* 현재 실행중인 스레드와 가장 높은 우선순위의 스레드의 우선순위를 비교해서 스케줄링한다. */
+/* Compare the priority of the currently running thread with the highest priority thread and schedule accordingly. */
 void 
 test_max_priority (void) {
 	struct list_elem *highest_pri_elem = list_begin(&ready_list);
