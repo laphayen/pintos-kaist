@@ -335,8 +335,8 @@ cond_broadcast (struct condition *cond, struct lock *lock) {
 
 
 /* Priority Scheduling and Synchronization */
-/* 첫 번째 인자로 주어진 세마포어를 위해 대기 중인 가장 높은 우선순위의 쓰레드와
- * 두 번째 인자로 주어진 세마포어를 위해 대기 중인 가장 높은 우선순위의 쓰레드를 비교합니다. */
+/* Compare the highest priority threads waiting for the semaphore 
+ * provided as the first argument and the semaphore provided as the second argument. */
 bool
 cmp_sem_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
 	struct semaphore_elem *l_sema = list_entry (a, struct semaphore_elem, elem);
