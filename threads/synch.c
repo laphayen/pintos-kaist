@@ -339,11 +339,14 @@ cond_broadcast (struct condition *cond, struct lock *lock) {
  * provided as the first argument and the semaphore provided as the second argument. */
 bool
 cmp_sem_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
-	struct semaphore_elem *l_sema = list_entry (a, struct semaphore_elem, elem);
-	struct semaphore_elem *s_sema = list_entry (b, struct semaphore_elem, elem);
+	struct semaphore_elem *semaphore_elem_a = list_entry (a, struct semaphore_elem, elem);
+	struct semaphore_elem *semaphore_elem_b = list_entry (b, struct semaphore_elem, elem);
 
-	struct list *waiter_l_sema = &(l_sema->semaphore.waiters);
-	struct list *waiter_s_sema = &(s_sema->semaphore.waiters);
+	struct list *waiter_list_a = &(semaphore_elem_a->semaphore.waiters);
+	struct list *waiter_list_b = &(semaphore_elem_b->semaphore.waiters);
 
-	return list_entry (list_begin (waiter_l_sema), struct thread, elem)->priority > list_entry (list_begin (waiter_s_sema), struct thread, elem)->priority;
+	struct thread *thread_a = list_entry (list_begin (waiter_list_a), struct thread, elem);
+	struct thread *thread_b = list_entry (list_begin (waiter_list_b), struct thread, elem);
+
+	return thread_a->priority > thread_b->priority;
 }
