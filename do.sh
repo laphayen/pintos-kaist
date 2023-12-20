@@ -25,4 +25,4 @@ make
 cd build
 source ../../activate
 
-$PRIORITY_CHANGE
+$PRIORITY_SEMA
