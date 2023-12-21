@@ -98,6 +98,13 @@ struct thread {
 	/* Alarm Clock */
 	int64_t wakeup_ticks; // 스레드가 일어날 시간
 
+	/* Priority Inversion */
+	int init_priority;
+
+	struct lock *wait_lock;
+	struct lock *donation;
+	struct list_elem doantion_elem;
+
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */
