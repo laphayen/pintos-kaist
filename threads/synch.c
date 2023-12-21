@@ -196,6 +196,9 @@ lock_acquire (struct lock *lock) {
 
 	sema_down (&lock->semaphore);
 	lock->holder = thread_current ();
+
+	// lock을 점유하고 있는 쓰레드와 요청하고 있는 쓰레드의 우선순위 비교
+	// priority donation 수행
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -230,6 +233,9 @@ lock_release (struct lock *lock) {
 
 	lock->holder = NULL;
 	sema_up (&lock->semaphore);
+
+	// release되면 cpu를 점유한 후 donation list에서 쓰레드 제거
+	// 우선순위 다시 계산
 }
 
 /* Returns true if the current thread holds LOCK, false
