@@ -692,3 +692,19 @@ cmp_priority (const struct list_elem *a, const struct list_elem *b, void *aux UN
 
 	return thread_a->priority > thread_b->priority;
 }
+
+/* Priority Inversion */
+void
+donate_priority (void) {
+	// priority donation을 수행
+}
+
+/* Priority Inversion */
+void remove_with_lock (struct lock *lock) {
+	// donation_list에서 쓰레드 엔트리 제거
+}
+
+/* Priority Inversion */
+void refresh_priority (void) {
+	// 우선순위를 다시 계산
+}
