@@ -102,7 +102,7 @@ struct thread {
 	int init_priority;
 
 	struct lock *wait_lock;
-	struct lock *donation;
+	struct list donation_list;
 	struct list_elem doantion_elem;
 
 #ifdef USERPROG
