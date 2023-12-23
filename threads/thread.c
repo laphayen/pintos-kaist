@@ -432,9 +432,9 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->magic = THREAD_MAGIC;
 
 	/* Priority Inversion */
-	t->init_priority = priority;
+	t->init_priority = priority; // 생성시 기본 우선순위와 동일
 	t->wait_lock = NULL;
-	list_init (&t->donation);
+	list_init (&t->donation_list);
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
@@ -697,11 +697,27 @@ cmp_priority (const struct list_elem *a, const struct list_elem *b, void *aux UN
 void
 donate_priority (void) {
 	// priority donation을 수행
+	struct thread *curr = thread_current ();
+	while (!donation_list) {
+		struct thread *holder = curr->wait_lock->holder;
+		if (holder->priority > curr->priority) {
+			holder->priority = curr->priority;
+			curr = holder;
+		}
+
+	}
 }
 
 /* Priority Inversion */
 void remove_with_lock (struct lock *lock) {
 	// donation_list에서 쓰레드 엔트리 제거
+	struct thread *curr = thread_current ();
+	struct list_elem *e = &curr->donation_elem;
+	struct list *donation = &curr->donation_list;
+
+	while (!donation) {
+		struct thread *t = list_entry (e, struct thread, donation_elem);
+	}
 }
 
 /* Priority Inversion */
