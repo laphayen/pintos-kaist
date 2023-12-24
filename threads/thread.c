@@ -698,13 +698,15 @@ void
 donate_priority (void) {
 	// priority donation을 수행
 	struct thread *curr = thread_current ();
-	while (!donation_list) {
-		struct thread *holder = curr->wait_lock->holder;
-		if (holder->priority > curr->priority) {
-			holder->priority = curr->priority;
-			curr = holder;
+	int priority = curr->priority;
+	int depth = 0;
+	while ((curr->wait_lock != NULL) && (depth < 8)) {
+		struct thread *nested = curr->wait_lock->holder;
+		if (nested->priority > curr->priority) {
+			nested->priority = curr->priority;
+			curr = nested;
 		}
-
+		nested++;
 	}
 }
 
@@ -712,10 +714,10 @@ donate_priority (void) {
 void remove_with_lock (struct lock *lock) {
 	// donation_list에서 쓰레드 엔트리 제거
 	struct thread *curr = thread_current ();
-	struct list_elem *e = &curr->donation_elem;
 	struct list *donation = &curr->donation_list;
+	struct list_elem *curr_e = list_front (donation);
 
-	while (!donation) {
+	while (list_empty(donation) && (curr_e != lsit_tail(donation)) ) {
 		struct thread *t = list_entry (e, struct thread, donation_elem);
 	}
 }
