@@ -101,9 +101,9 @@ struct thread {
 	/* Priority Inversion */
 	int init_priority;
 
-	struct lock *wait_lock;
-	struct list donation_list;
-	struct list_elem doantion_elem;
+	struct lock *wait_on_lock;
+	struct list donations;
+	struct list_elem donation_elem;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
