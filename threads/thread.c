@@ -432,7 +432,7 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->magic = THREAD_MAGIC;
 
 	/* Priority Inversion */
-	t->init_priority = priority; // 생성시 기본 우선순위와 동일
+	t->init_priority = priority;
 	t->wait_on_lock = NULL;
 	list_init (&t->donations);
 }
@@ -746,4 +746,13 @@ void refresh_priority (void) {
 		curr->priority = max_priority;
 	}
 
+}
+
+/* Priority Inversion */
+bool
+cmp_donate_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
+	struct thread* thread_a = list_entry(a, struct thread, donation_elem);
+	struct thread* thread_b = list_entry(b, struct thread, donation_elem);
+
+	return thread_a->priority > thread_b->priority;
 }
