@@ -194,11 +194,18 @@ lock_acquire (struct lock *lock) {
 	ASSERT (!intr_context ());
 	ASSERT (!lock_held_by_current_thread (lock));
 
-	sema_down (&lock->semaphore);
-	lock->holder = thread_current ();
+	/* Priority Inversion */
+	struct thread *curr = thread_current ();
 
-	// lock을 점유하고 있는 쓰레드와 요청하고 있는 쓰레드의 우선순위 비교
-	donate_priority ();
+	if (lock->holder) {
+		curr->wait_on_lock = lock;
+		list_insert_ordered (&lock->holder->donations, &curr->donation_elem, cmp_donate_priority, NULL);
+		donate_priority ();
+	}
+
+	sema_down (&lock->semaphore);
+	curr->wait_on_lock = NULL;
+	lock->holder = thread_current ();
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -220,6 +227,7 @@ lock_try_acquire (struct lock *lock) {
 	return success;
 }
 
+// error
 /* Releases LOCK, which must be owned by the current thread.
    This is lock_release function.
 
@@ -231,14 +239,11 @@ lock_release (struct lock *lock) {
 	ASSERT (lock != NULL);
 	ASSERT (lock_held_by_current_thread (lock));
 
+	remove_with_lock (lock);
+	refresh_priority ();
+
 	lock->holder = NULL;
 	sema_up (&lock->semaphore);
-
-	// release되면 cpu를 점유한 후 donation list에서 쓰레드 제거
-	remove_with_lock (&lock);
-	
-	// 우선순위 다시 계산
-	refresh_priority ();
 }
 
 /* Returns true if the current thread holds LOCK, false
