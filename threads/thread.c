@@ -433,8 +433,8 @@ init_thread (struct thread *t, const char *name, int priority) {
 
 	/* Priority Inversion */
 	t->init_priority = priority; // 생성시 기본 우선순위와 동일
-	t->wait_lock = NULL;
-	list_init (&t->donation_list);
+	t->wait_on_lock = NULL;
+	list_init (&t->donations);
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
@@ -700,8 +700,8 @@ donate_priority (void) {
 	struct thread *curr = thread_current ();
 	int priority = curr->priority;
 	int depth = 0;
-	while ((curr->wait_lock != NULL) && (depth < 8)) {
-		struct thread *nested = curr->wait_lock->holder;
+	while ((curr->wait_on_lock != NULL) && (depth < 8)) {
+		struct thread *nested = curr->wait_on_lock->holder;
 		if (nested->priority > curr->priority) {
 			nested->priority = curr->priority;
 			curr = nested;
@@ -714,15 +714,36 @@ donate_priority (void) {
 void remove_with_lock (struct lock *lock) {
 	// donation_list에서 쓰레드 엔트리 제거
 	struct thread *curr = thread_current ();
-	struct list *donation = &curr->donation_list;
-	struct list_elem *curr_e = list_front (donation);
+	struct list *donation_list = &curr->donations;
+	struct list_elem *curr_elem = list_front (donation_list);
 
-	while (list_empty(donation) && (curr_e != lsit_tail(donation)) ) {
-		struct thread *t = list_entry (e, struct thread, donation_elem);
+	while (list_empty(donation_list) && (curr_elem != list_tail(donation_list)) ) {
+		struct thread *t = list_entry (curr_elem, struct thread, donation_elem);
+
+		if (t->wait_on_lock == lock) {
+			curr_elem = list_remove (&t->donation_elem);
+		}
+		else {
+			curr_elem = list_next (curr_elem);
+		}
 	}
 }
 
 /* Priority Inversion */
 void refresh_priority (void) {
-	// 우선순위를 다시 계산
+	struct thread *curr = thread_current ();
+	struct list *donation_list = &curr->donations;                
+	curr->priority = curr->init_priority;
+	int max_priority = curr->priority;
+
+	if (!list_empty (donation_list)) {
+		struct list_elem *curr_elem = list_front (donation_list);
+		while (curr_elem != list_tail (donation_list)) {
+			struct thread *t = list_entry (curr_elem, struct thread, donation_elem);
+			max_priority = t->priority;
+			curr_elem = list_next (curr_elem);
+		}
+		curr->priority = max_priority;
+	}
+
 }
