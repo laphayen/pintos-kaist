@@ -5,6 +5,7 @@ The manual is available at https://casys-kaist.github.io/pintos-kaist/.
 * * *
 
 # Thread
-### Alarm Clock[https://codeomni.tistory.com/945]
-### Priority Scheduling[https://codeomni.tistory.com/946]
-### Priority Scheduling and Synchronization[https://codeomni.tistory.com/947]
+#### Alarm Clock[https://codeomni.tistory.com/945]
+#### Priority Scheduling[https://codeomni.tistory.com/946]
+#### Priority Scheduling and Synchronization[https://codeomni.tistory.com/947]
+#### Priority Inversion[https://codeomni.tistory.com/948]
