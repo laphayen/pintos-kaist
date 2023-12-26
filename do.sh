@@ -25,4 +25,4 @@ make
 cd build
 source ../../activate
 
-$PRIORITY_SEMA
+$PRIORITY_DONATE_CHAIN

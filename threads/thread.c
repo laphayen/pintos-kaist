@@ -330,7 +330,10 @@ thread_yield (void) {
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) {
-	thread_current ()->priority = new_priority;
+	/* Priority Inversion */
+	thread_current ()->init_priority = new_priority;
+	refresh_priority ();
+
 	/* Priority Scheduling */
 	test_max_priority ();
 }
@@ -430,6 +433,11 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);
 	t->priority = priority;
 	t->magic = THREAD_MAGIC;
+
+	/* Priority Inversion */
+	t->init_priority = priority;
+	t->wait_on_lock = NULL;
+	list_init (&t->donations);
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
@@ -684,6 +692,71 @@ bool
 cmp_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
 	struct thread* thread_a = list_entry(a, struct thread, elem);
 	struct thread* thread_b = list_entry(b, struct thread, elem);
+
+	return thread_a->priority > thread_b->priority;
+}
+
+/* Priority Inversion */
+/* Perform priority donation. */
+void
+donate_priority (void) {
+	// priority donation을 수행
+	struct thread *curr = thread_current ();
+	int depth = 0;
+	while ((curr->wait_on_lock != NULL) && (depth < 9)) {
+		depth++;
+		curr->wait_on_lock->holder->priority = curr->priority;
+		curr = curr->wait_on_lock->holder;
+	}
+}
+
+/* Priority Inversion */
+/* Remove the thread entry from the donation_list. */
+void
+remove_with_lock (struct lock *lock) {
+	struct list *donation_list = &thread_current ()->donations;
+	struct list_elem *curr_elem = list_begin (donation_list);
+
+	while (curr_elem != list_end(donation_list)) {
+		struct thread *t = list_entry (curr_elem, struct thread, donation_elem);
+
+		if (t->wait_on_lock == lock) {
+			curr_elem = list_remove (curr_elem);
+		}
+		else {
+			curr_elem = list_next (curr_elem);
+		}
+	}
+}
+
+/* Priority Inversion */
+/* Recalculate the priority. */
+void 
+refresh_priority (void) {
+	struct thread *curr = thread_current ();
+	struct list *donation_list = &curr->donations;                
+	int max_priority = curr->priority;
+
+	curr->priority = curr->init_priority;
+
+	if (!list_empty (donation_list)) {
+		struct list_elem *curr_elem = list_front (donation_list);
+		while (curr_elem != list_tail (donation_list)) {
+			struct thread *t = list_entry (curr_elem, struct thread, donation_elem);
+			max_priority = t->priority;
+			curr_elem = list_next (curr_elem);
+		}
+		curr->priority = max_priority;
+	}
+
+}
+
+/* Priority Inversion */
+/* Compare the donated priority of the thread. */
+bool
+cmp_donate_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
+	struct thread* thread_a = list_entry(a, struct thread, donation_elem);
+	struct thread* thread_b = list_entry(b, struct thread, donation_elem);
 
 	return thread_a->priority > thread_b->priority;
 }
