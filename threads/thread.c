@@ -711,26 +711,26 @@ donate_priority (void) {
 }
 
 /* Priority Inversion */
-void remove_with_lock (struct lock *lock) {
-	// donation_list에서 쓰레드 엔트리 제거
+/* Remove the thread entry from the donation_list. */
+void
+remove_with_lock (struct lock *lock) {
 	struct thread *curr = thread_current ();
 	struct list *donation_list = &curr->donations;
-	struct list_elem *curr_elem = list_front (donation_list);
+	struct list_elem *curr_elem = list_begin (donation_list);
 
-	while (list_empty(donation_list) && (curr_elem != list_tail(donation_list)) ) {
+	while (curr_elem != list_tail(donation_list)) {
 		struct thread *t = list_entry (curr_elem, struct thread, donation_elem);
 
 		if (t->wait_on_lock == lock) {
 			curr_elem = list_remove (&t->donation_elem);
 		}
-		else {
-			curr_elem = list_next (curr_elem);
-		}
+		curr_elem = list_next (curr_elem);
 	}
 }
 
 /* Priority Inversion */
-void refresh_priority (void) {
+void 
+refresh_priority (void) {
 	struct thread *curr = thread_current ();
 	struct list *donation_list = &curr->donations;                
 	curr->priority = curr->init_priority;
