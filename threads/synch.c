@@ -204,8 +204,9 @@ lock_acquire (struct lock *lock) {
 	}
 
 	sema_down (&lock->semaphore);
+	/* Priority Inversion */
 	curr->wait_on_lock = NULL;
-	lock->holder = thread_current ();
+	lock->holder = curr;
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -227,7 +228,6 @@ lock_try_acquire (struct lock *lock) {
 	return success;
 }
 
-// error
 /* Releases LOCK, which must be owned by the current thread.
    This is lock_release function.
 
@@ -239,6 +239,7 @@ lock_release (struct lock *lock) {
 	ASSERT (lock != NULL);
 	ASSERT (lock_held_by_current_thread (lock));
 
+	/* Priority Inversion */
 	remove_with_lock (lock);
 	refresh_priority ();
 
