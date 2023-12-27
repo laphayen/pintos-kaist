@@ -11,6 +11,10 @@
 #include "threads/synch.h"
 #include "threads/vaddr.h"
 #include "intrinsic.h"
+
+/* Multi Level Feedback Queue Scheduler */
+#include "threads/fixed_point.h"
+
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -438,6 +442,10 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->init_priority = priority;
 	t->wait_on_lock = NULL;
 	list_init (&t->donations);
+
+	/* Multi Level Feedback Queue Scheduler */
+	t->nice = NICE_DEFAULT;
+	t->recent_cpu = LOAD_AVG_DEFAULT;
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
@@ -759,4 +767,39 @@ cmp_donate_priority (const struct list_elem *a, const struct list_elem *b, void 
 	struct thread* thread_b = list_entry(b, struct thread, donation_elem);
 
 	return thread_a->priority > thread_b->priority;
+}
+
+/* Multi Level Feedback Queue Scheduler */
+/* 인자로 주어진 쓰레드의 priority를 업데이트 */
+void 
+mlfqs_priority (struct thread *t) {
+
+}
+
+/* Multi Level Feedback Queue Scheduler */
+/* 인자로 주어진 쓰레드의 recent_cpu를 업데이트 */
+void
+mlfqs_recent_cpu (struct thread *t) {
+
+}
+
+/* Multi Level Feedback Queue Scheduler */
+/* 시스템의 load_avg를 업데이트 */
+void 
+mlfqs_load_avg (void) {
+
+}
+
+/* Multi Level Feedback Queue Scheduler */
+/* 현재 수행중인 쓰레드의 recent_cpu를 1증가 시킴 */
+void 
+mlfqs_increment (void) {
+
+}
+
+/* Multi Level Feedback Queue Scheduler */
+/* 모든 쓰레드의 priority, recent_cpu를 업데이트 */
+void
+mlfqs_recalc (void) {
+
 }
