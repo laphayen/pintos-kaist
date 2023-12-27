@@ -28,6 +28,11 @@ typedef int tid_t;
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
 
+/* Multi Level Feedback Queue Scheduler */
+#define NICE_DEFAULT 0
+#define RECENT_CPU_DEFAULT 0
+#define LOAD_AVG_DEFAULT 0
+
 /* A kernel thread or user process.
  *
  * Each thread structure is stored in its own 4 kB page.  The
@@ -105,6 +110,10 @@ struct thread {
 	struct list donations;
 	struct list_elem donation_elem;
 
+	/* Multi Level Feedback Queue Scheduler */
+	int nice;
+	int recent_cpu;
+
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */
@@ -168,5 +177,12 @@ void donate_priority (void);
 void remove_with_lock (struct lock * lock);
 void refresh_priority (void);
 bool cmp_donate_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+
+/* Multi Level Feedback Queue Scheduler */
+void mlfqs_priority (struct thread *t);
+void mlfqs_recent_cpu (struct thread *t);
+void mlfqs_load_avg (void);
+void mlfqs_increment (void);
+void mlfqs_recalc (void);
 
 #endif /* threads/thread.h */
