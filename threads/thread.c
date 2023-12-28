@@ -371,22 +371,41 @@ thread_set_nice (int nice UNUSED) {
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) {
-	/* TODO: Your implementation goes here */
-	return 0;
+	/* Multi Level Feedback Queue Scheduler */
+	enum intr_level old_level = intr_disable ();
+
+	int nice_value = thread_current ()->nice;
+
+	intr_set_level (old_level);
+
+	return nice_value;
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) {
-	/* TODO: Your implementation goes here */
-	return 0;
+	/* Multi Level Feedback Queue Scheduler */
+	enum intr_level old_level = intr_disable ();
+
+	int load_avg_value = fp_to_int_round (mult_mixed (load_avg, 100));
+
+	intr_set_level (old_level);
+
+	return load_avg_value;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) {
-	/* TODO: Your implementation goes here */
-	return 0;
+	/* Multi Level Feedback Queue Scheduler */
+	enum intr_level old_level = intr_disable ();
+
+	struct thread *curr = thread_current ();
+	int recent_cpu_value = fp_to_int_round (mult_mixed (curr->recent_cpu, 100));
+
+	intr_set_level (old_level);
+
+	return recent_cpu_value;
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -826,6 +845,7 @@ mlfqs_increment (void) {
 	}
 }
 
+/* error */
 /* Multi Level Feedback Queue Scheduler */
 /* 모든 쓰레드의 priority, recent_cpu를 업데이트 */
 void
@@ -841,13 +861,17 @@ mlfqs_recalc (void) {
 		struct thread *ready_thread = list_entry (ready_elem, struct thread, elem);
 		mlfqs_recent_cpu (ready_thread);
 		mlfqs_priority (ready_thread);
+		printf("ready pre list_next\n");
 		ready_elem = list_next (ready_elem);
+		printf("ready next list_next\n");
 	}
 
 	while (sleep_elem != list_tail (&sleep_elem)) {
 		struct thread *sleep_thread = list_entry (sleep_elem, struct thread, elem);
 		mlfqs_recent_cpu (sleep_thread);
 		mlfqs_priority (sleep_thread);
+		printf("sleep pre list_next\n");
 		sleep_elem =list_next (sleep_elem);
+		printf("sleep next list_next\n");
 	}
 }
