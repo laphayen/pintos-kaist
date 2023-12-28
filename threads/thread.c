@@ -56,6 +56,8 @@ static long long user_ticks;    /* # of timer ticks in user programs. */
 /* Alarm Clcok */
 static long long next_tick_to_awake;
 
+int load_avg;
+
 /* Scheduling. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
 static unsigned thread_ticks;   /* # of timer ticks since last yield. */
@@ -140,6 +142,8 @@ thread_start (void) {
 	struct semaphore idle_started;
 	sema_init (&idle_started, 0);
 	thread_create ("idle", PRI_MIN, idle, &idle_started);
+
+	load_avg = LOAD_AVG_DEFAULT;
 
 	/* Start preemptive thread scheduling. */
 	intr_enable ();
@@ -773,33 +777,67 @@ cmp_donate_priority (const struct list_elem *a, const struct list_elem *b, void 
 /* 인자로 주어진 쓰레드의 priority를 업데이트 */
 void 
 mlfqs_priority (struct thread *t) {
-
+	if (t == idle_thread) {
+		return ;
+	}
+	t->priority = fp_to_int (add_mixed (div_mixed (t->recent_cpu, -4), PRI_MAX - t->nice * 2));
 }
 
 /* Multi Level Feedback Queue Scheduler */
 /* 인자로 주어진 쓰레드의 recent_cpu를 업데이트 */
 void
 mlfqs_recent_cpu (struct thread *t) {
-
+	if (t == idle_thread) {
+		return ;
+	}
+	t->recent_cpu = add_mixed (mult_fp (div_fp (mult_mixed (load_avg, 2), add_mixed (mult_mixed (load_avg, 2), 1)), t->recent_cpu), t->nice);
 }
 
 /* Multi Level Feedback Queue Scheduler */
 /* 시스템의 load_avg를 업데이트 */
 void 
 mlfqs_load_avg (void) {
+	int size = list_size (&ready_list);
 
+	if (thread_current () != idle_thread) {
+		size += 1;
+	}
+	load_avg = mult_fp (div_mixed (int_to_fp (59), 60), load_avg) + mult_mixed (div_mixed (int_to_fp (1), 60), size);
 }
 
 /* Multi Level Feedback Queue Scheduler */
 /* 현재 수행중인 쓰레드의 recent_cpu를 1증가 시킴 */
 void 
 mlfqs_increment (void) {
+	struct thread *curr = thread_current ();
 
+	if (curr != idle_thread) {
+		curr->recent_cpu = add_mixed (curr->recent_cpu, 1);
+	}
 }
 
 /* Multi Level Feedback Queue Scheduler */
 /* 모든 쓰레드의 priority, recent_cpu를 업데이트 */
 void
 mlfqs_recalc (void) {
+	struct thread *curr = thread_current ();
+	struct list_elem *ready_elem = list_begin (&ready_list);
+	struct list_elem *sleep_elem = list_begin (&sleep_list);
 
+	mlfqs_recent_cpu (curr);
+	mlfqs_priority (curr);
+
+	while (ready_elem != list_tail (&ready_list)) {
+		struct thread *ready_thread = list_entry (ready_elem, struct thread, elem);
+		mlfqs_recent_cpu (ready_thread);
+		mlfqs_priority (ready_thread);
+		ready_elem = list_next (ready_elem);
+	}
+
+	while (sleep_elem != list_tail (&sleep_elem)) {
+		struct thread *sleep_thread = list_entry (sleep_elem, struct thread, elem);
+		mlfqs_recent_cpu (sleep_thread);
+		mlfqs_priority (sleep_thread);
+		sleep_elem =list_next (sleep_elem);
+	}
 }
