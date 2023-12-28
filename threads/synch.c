@@ -197,10 +197,13 @@ lock_acquire (struct lock *lock) {
 	/* Priority Inversion */
 	struct thread *curr = thread_current ();
 
-	if (lock->holder) {
-		curr->wait_on_lock = lock;
-		list_insert_ordered (&lock->holder->donations, &curr->donation_elem, cmp_donate_priority, NULL);
-		donate_priority ();
+	/* Multi Level Feedback Queue Scheduler */
+	if (!thread_mlfqs) {
+		if (lock->holder) {
+			curr->wait_on_lock = lock;
+			list_insert_ordered (&lock->holder->donations, &curr->donation_elem, cmp_donate_priority, NULL);
+			donate_priority ();
+		}
 	}
 
 	sema_down (&lock->semaphore);
@@ -238,10 +241,13 @@ void
 lock_release (struct lock *lock) {
 	ASSERT (lock != NULL);
 	ASSERT (lock_held_by_current_thread (lock));
-
-	/* Priority Inversion */
-	remove_with_lock (lock);
-	refresh_priority ();
+	
+	/* Multi Level Feedback Queue Scheduler */
+	if (!thread_mlfqs) {
+		/* Priority Inversion */
+		remove_with_lock (lock);
+		refresh_priority ();
+	}
 
 	lock->holder = NULL;
 	sema_up (&lock->semaphore);
