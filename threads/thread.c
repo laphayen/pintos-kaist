@@ -56,6 +56,7 @@ static long long user_ticks;    /* # of timer ticks in user programs. */
 /* Alarm Clcok */
 static long long next_tick_to_awake;
 
+/* Multi Level Feedback Queue Scheduler */
 int load_avg;
 
 /* Scheduling. */
@@ -804,7 +805,7 @@ cmp_donate_priority (const struct list_elem *a, const struct list_elem *b, void 
 }
 
 /* Multi Level Feedback Queue Scheduler */
-/* 인자로 주어진 쓰레드의 priority를 업데이트 */
+/* Update the priority of the thread provided as an argument. */
 void 
 mlfqs_priority (struct thread *t) {
 	if (t == idle_thread) {
@@ -815,7 +816,7 @@ mlfqs_priority (struct thread *t) {
 }
 
 /* Multi Level Feedback Queue Scheduler */
-/* 인자로 주어진 쓰레드의 recent_cpu를 업데이트 */
+/* Update the recent_cpu of the thread provided as an argument. */
 void
 mlfqs_recent_cpu (struct thread *t) {
 	if (t == idle_thread) {
@@ -825,7 +826,7 @@ mlfqs_recent_cpu (struct thread *t) {
 }
 
 /* Multi Level Feedback Queue Scheduler */
-/* 시스템의 load_avg를 업데이트 */
+/* Update the system's load_avg. */
 void 
 mlfqs_load_avg (void) {
 	int size = list_size (&ready_list);
@@ -837,7 +838,7 @@ mlfqs_load_avg (void) {
 }
 
 /* Multi Level Feedback Queue Scheduler */
-/* 현재 수행중인 쓰레드의 recent_cpu를 1증가 시킴 */
+/* Increment the recent_cpu of the currently executing thread by 1. */
 void 
 mlfqs_increment (void) {
 	struct thread *curr = thread_current ();
@@ -848,7 +849,7 @@ mlfqs_increment (void) {
 }
 
 /* Multi Level Feedback Queue Scheduler */
-/* 모든 쓰레드의 priority, recent_cpu를 업데이트 */
+/* Update the priority and recent_cpu of all threads. */
 void
 mlfqs_recalc (void) {
 	struct thread *curr = thread_current ();
@@ -871,6 +872,7 @@ mlfqs_recalc (void) {
 }
 
 /* Multi Level Feedback Queue Scheduler */
+/* Execute mlfqs_recent_cpu and mlfqs_priority for the thread provided as an argument. */
 void
 mlfqs_update_thread (struct thread *t) {
 	mlfqs_recent_cpu (t);
