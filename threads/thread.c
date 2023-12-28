@@ -143,6 +143,7 @@ thread_start (void) {
 	sema_init (&idle_started, 0);
 	thread_create ("idle", PRI_MIN, idle, &idle_started);
 
+	/* Multi Level Feedback Queue Scheduler */
 	load_avg = LOAD_AVG_DEFAULT;
 
 	/* Start preemptive thread scheduling. */
@@ -857,21 +858,10 @@ mlfqs_recalc (void) {
 	mlfqs_recent_cpu (curr);
 	mlfqs_priority (curr);
 
-	while (ready_elem != list_tail (&ready_list)) {
+	while (ready_elem != list_end (&ready_list)) {
 		struct thread *ready_thread = list_entry (ready_elem, struct thread, elem);
 		mlfqs_recent_cpu (ready_thread);
 		mlfqs_priority (ready_thread);
-		printf("ready pre list_next\n");
 		ready_elem = list_next (ready_elem);
-		printf("ready next list_next\n");
-	}
-
-	while (sleep_elem != list_tail (&sleep_elem)) {
-		struct thread *sleep_thread = list_entry (sleep_elem, struct thread, elem);
-		mlfqs_recent_cpu (sleep_thread);
-		mlfqs_priority (sleep_thread);
-		printf("sleep pre list_next\n");
-		sleep_elem =list_next (sleep_elem);
-		printf("sleep next list_next\n");
 	}
 }
