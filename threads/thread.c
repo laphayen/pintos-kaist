@@ -11,6 +11,10 @@
 #include "threads/synch.h"
 #include "threads/vaddr.h"
 #include "intrinsic.h"
+
+/* Multi Level Feedback Queue Scheduler */
+#include "threads/fixed_point.h"
+
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -51,6 +55,9 @@ static long long user_ticks;    /* # of timer ticks in user programs. */
 
 /* Alarm Clcok */
 static long long next_tick_to_awake;
+
+/* Multi Level Feedback Queue Scheduler */
+int load_avg;
 
 /* Scheduling. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
@@ -136,6 +143,9 @@ thread_start (void) {
 	struct semaphore idle_started;
 	sema_init (&idle_started, 0);
 	thread_create ("idle", PRI_MIN, idle, &idle_started);
+
+	/* Multi Level Feedback Queue Scheduler */
+	load_avg = LOAD_AVG_DEFAULT;
 
 	/* Start preemptive thread scheduling. */
 	intr_enable ();
@@ -330,12 +340,15 @@ thread_yield (void) {
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) {
-	/* Priority Inversion */
-	thread_current ()->init_priority = new_priority;
-	refresh_priority ();
+	/* Multi Level Feedback Queue Scheduler */
+	if (!thread_mlfqs) {
+		/* Priority Inversion */
+		thread_current ()->init_priority = new_priority;
+		refresh_priority ();
 
-	/* Priority Scheduling */
-	test_max_priority ();
+		/* Priority Scheduling */
+		test_max_priority ();
+	}
 }
 
 /* Returns the current thread's priority. */
@@ -347,28 +360,54 @@ thread_get_priority (void) {
 /* Sets the current thread's nice value to NICE. */
 void
 thread_set_nice (int nice UNUSED) {
-	/* TODO: Your implementation goes here */
+	/* Multi Level Feedback Queue Scheduler */
+	enum intr_level old_level = intr_disable ();
+
+	thread_current ()->nice = nice;
+	mlfqs_priority (thread_current ());
+	test_max_priority ();
+
+	intr_set_level (old_level);
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) {
-	/* TODO: Your implementation goes here */
-	return 0;
+	/* Multi Level Feedback Queue Scheduler */
+	enum intr_level old_level = intr_disable ();
+
+	int nice_value = thread_current ()->nice;
+
+	intr_set_level (old_level);
+
+	return nice_value;
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) {
-	/* TODO: Your implementation goes here */
-	return 0;
+	/* Multi Level Feedback Queue Scheduler */
+	enum intr_level old_level = intr_disable ();
+
+	int load_avg_value = fp_to_int_round (mult_mixed (load_avg, 100));
+
+	intr_set_level (old_level);
+
+	return load_avg_value;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) {
-	/* TODO: Your implementation goes here */
-	return 0;
+	/* Multi Level Feedback Queue Scheduler */
+	enum intr_level old_level = intr_disable ();
+
+	struct thread *curr = thread_current ();
+	int recent_cpu_value = fp_to_int_round (mult_mixed (curr->recent_cpu, 100));
+
+	intr_set_level (old_level);
+
+	return recent_cpu_value;
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -438,6 +477,10 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->init_priority = priority;
 	t->wait_on_lock = NULL;
 	list_init (&t->donations);
+
+	/* Multi Level Feedback Queue Scheduler */
+	t->nice = NICE_DEFAULT;
+	t->recent_cpu = LOAD_AVG_DEFAULT;
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
@@ -759,4 +802,79 @@ cmp_donate_priority (const struct list_elem *a, const struct list_elem *b, void 
 	struct thread* thread_b = list_entry(b, struct thread, donation_elem);
 
 	return thread_a->priority > thread_b->priority;
+}
+
+/* Multi Level Feedback Queue Scheduler */
+/* Update the priority of the thread provided as an argument. */
+void 
+mlfqs_priority (struct thread *t) {
+	if (t == idle_thread) {
+		return ;
+	}
+	
+	t->priority = fp_to_int (add_mixed (div_mixed (t->recent_cpu, -4), PRI_MAX - t->nice * 2));
+}
+
+/* Multi Level Feedback Queue Scheduler */
+/* Update the recent_cpu of the thread provided as an argument. */
+void
+mlfqs_recent_cpu (struct thread *t) {
+	if (t == idle_thread) {
+		return ;
+	}
+	t->recent_cpu = mult_fp (div_fp (mult_mixed (load_avg, 2), (mult_mixed (load_avg, 2) + int_to_fp (1))), t->recent_cpu) + int_to_fp (t->nice);
+}
+
+/* Multi Level Feedback Queue Scheduler */
+/* Update the system's load_avg. */
+void 
+mlfqs_load_avg (void) {
+	int size = list_size (&ready_list);
+
+	if (thread_current () != idle_thread) {
+		size += 1;
+	}
+	load_avg = add_fp (mult_fp (div_mixed (int_to_fp (59), 60), load_avg), mult_mixed (div_mixed (int_to_fp (1), 60), size));
+}
+
+/* Multi Level Feedback Queue Scheduler */
+/* Increment the recent_cpu of the currently executing thread by 1. */
+void 
+mlfqs_increment (void) {
+	struct thread *curr = thread_current ();
+
+	if (curr != idle_thread) {
+		curr->recent_cpu = add_mixed (curr->recent_cpu, 1);
+	}
+}
+
+/* Multi Level Feedback Queue Scheduler */
+/* Update the priority and recent_cpu of all threads. */
+void
+mlfqs_recalc (void) {
+	struct thread *curr = thread_current ();
+	struct list_elem *ready_elem = list_begin (&ready_list);
+	struct list_elem *sleep_elem = list_begin (&sleep_list);
+
+	mlfqs_update_thread (curr);
+
+	while (ready_elem != list_end (&ready_list)) {
+		struct thread *ready_thread = list_entry (ready_elem, struct thread, elem);
+		mlfqs_update_thread (ready_thread);
+		ready_elem = list_next (ready_elem);
+	}
+
+	while (sleep_elem != list_end (&sleep_list)) {
+		struct thread *sleep_thread = list_entry (sleep_elem, struct thread, elem);
+		mlfqs_update_thread (sleep_thread);
+		sleep_elem = list_next (sleep_elem);
+	}
+}
+
+/* Multi Level Feedback Queue Scheduler */
+/* Execute mlfqs_recent_cpu and mlfqs_priority for the thread provided as an argument. */
+void
+mlfqs_update_thread (struct thread *t) {
+	mlfqs_recent_cpu (t);
+	mlfqs_priority (t);
 }
