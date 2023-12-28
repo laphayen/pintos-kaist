@@ -33,4 +33,4 @@ make
 cd build
 source ../../activate
 
-$MLFQS_LOAD_AVG
+$MLFQS_RECENT_1
