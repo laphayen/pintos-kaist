@@ -822,7 +822,7 @@ mlfqs_recent_cpu (struct thread *t) {
 	if (t == idle_thread) {
 		return ;
 	}
-	t->recent_cpu = mult_fp(div_fp(mult_mixed(load_avg, 2), (mult_mixed(load_avg, 2) + int_to_fp(1))), t->recent_cpu) + int_to_fp(t->nice);
+	t->recent_cpu = mult_fp (div_fp (mult_mixed (load_avg, 2), (mult_mixed (load_avg, 2) + int_to_fp (1))), t->recent_cpu) + int_to_fp (t->nice);
 }
 
 /* Multi Level Feedback Queue Scheduler */
