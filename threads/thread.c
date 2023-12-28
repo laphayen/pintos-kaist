@@ -338,12 +338,15 @@ thread_yield (void) {
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) {
-	/* Priority Inversion */
-	thread_current ()->init_priority = new_priority;
-	refresh_priority ();
+	/* Multi Level Feedback Queue Scheduler */
+	if (!thread_mlfqs) {
+		/* Priority Inversion */
+		thread_current ()->init_priority = new_priority;
+		refresh_priority ();
 
-	/* Priority Scheduling */
-	test_max_priority ();
+		/* Priority Scheduling */
+		test_max_priority ();
+	}
 }
 
 /* Returns the current thread's priority. */
@@ -355,7 +358,14 @@ thread_get_priority (void) {
 /* Sets the current thread's nice value to NICE. */
 void
 thread_set_nice (int nice UNUSED) {
-	/* TODO: Your implementation goes here */
+	/* Multi Level Feedback Queue Scheduler */
+	enum intr_level old_level = intr_disable ();
+
+	thread_current ()->nice = nice;
+	mlfqs_priority (thread_current ());
+	test_max_priority ();
+
+	intr_set_level (old_level);
 }
 
 /* Returns the current thread's nice value. */
