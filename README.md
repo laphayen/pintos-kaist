@@ -9,3 +9,4 @@ The manual is available at https://casys-kaist.github.io/pintos-kaist/.
 #### Priority Scheduling[https://codeomni.tistory.com/946]
 #### Priority Scheduling and Synchronization[https://codeomni.tistory.com/947]
 #### Priority Inversion[https://codeomni.tistory.com/948]
+#### Multi-Level Feedback Queue Scheduler[https://codeomni.tistory.com/949]
