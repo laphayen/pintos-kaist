@@ -43,6 +43,10 @@ process_create_initd (const char *file_name) {
 	char *fn_copy;
 	tid_t tid;
 
+	/* Argument Passing */
+	// file_name 문자열 파싱
+	// 첫 번째 토큰을 thread_create () 함수에 쓰레드 이름으로 전달
+
 	/* Make a copy of FILE_NAME.
 	 * Otherwise there's a race between the caller and load(). */
 	fn_copy = palloc_get_page (0);
@@ -165,6 +169,14 @@ process_exec (void *f_name) {
 	char *file_name = f_name;
 	bool success;
 
+	/* Argument Passing */
+	// file_name 문자열 파싱
+	// argument_stack () 함수를 사용해서 스택에 토큰을 저장
+	char *argv[64];
+	int argc = 0;
+	char *token;
+	char *save_ptr;
+
 	/* We cannot use the intr_frame in the thread structure.
 	 * This is because when current thread rescheduled,
 	 * it stores the execution information to the member. */
@@ -176,6 +188,15 @@ process_exec (void *f_name) {
 	/* We first kill the current context */
 	process_cleanup ();
 
+	/* Argument Passing */
+	token = strtok_r (file_name, " ", &save_ptr);
+
+	while (token != NULL) {
+		argv[argc] = token;
+		token = strtok_r (NULL, " ", &save_ptr);
+		argc++;
+	}
+
 	/* And then load the binary */
 	success = load (file_name, &_if);
 
@@ -183,6 +204,15 @@ process_exec (void *f_name) {
 	palloc_free_page (file_name);
 	if (!success)
 		return -1;
+
+	/* Argument Passing */
+	void **rspp = &_if.rsp;
+	_if.R.rdi = argc;
+	_if.R.rsi = (uint64_t) *rrsp - sizeof (void *);
+
+	hex_dump(_if.rsp, _if.rsp, USER_STACK - (uint64_t) *rspp, true);
+
+	palloc_free_page (file_name);
 
 	/* Start switched process. */
 	do_iret (&_if);
@@ -204,6 +234,10 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
+	int i = 0;
+	while (i < 10000000) {
+		i++;
+	}
 	return -1;
 }
 
@@ -468,6 +502,13 @@ validate_segment (const struct Phdr *phdr, struct file *file) {
 
 	/* It's okay. */
 	return true;
+}
+
+/* Argument Passing */
+/* 유저 스택에 프로그램 이름과 인자들을 저장하는 함수 */
+void
+argument_stack (char **parse, int count, void **esp) {
+
 }
 
 #ifndef VM
