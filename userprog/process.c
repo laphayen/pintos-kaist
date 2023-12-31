@@ -46,6 +46,8 @@ process_create_initd (const char *file_name) {
 	/* Argument Passing */
 	// file_name 문자열 파싱
 	// 첫 번째 토큰을 thread_create () 함수에 쓰레드 이름으로 전달
+	char *save_ptr;
+	strtok_r (file_name, " ", &save_ptr);
 
 	/* Make a copy of FILE_NAME.
 	 * Otherwise there's a race between the caller and load(). */
@@ -201,20 +203,22 @@ process_exec (void *f_name) {
 	success = load (file_name, &_if);
 
 	/* Argument Passing */
+	argument_stack (parse, count, &_if.rsp);
+	_if.R.rdi = count;
+	_if.R.rsi = parse[0];
+
+	hex_dump(_if.rsp, _if.rsp, USER_STACK - (uint64_t)_if.rsp, true);
+
+	palloc_free_page (file_name);
+
+	/* Argument Passing */
 	/* If load failed, quit. */
 	if (!success) {
 		palloc_free_page (file_name);
 		return -1;
 	}
 
-	/* Argument Passing */
-	void **rspp = &_if.rsp;
-	_if.R.rdi = count;
-	_if.R.rsi = (uint64_t) *rrsp - sizeof (void *);
-
-	hex_dump(_if.rsp, _if.rsp, USER_STACK - (uint64_t) *rspp, true);
-
-	palloc_free_page (file_name);
+	
 
 	/* Start switched process. */
 	do_iret (&_if);
@@ -236,10 +240,10 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
-	int i = 0;
-	while (i < 10000000) {
-		i++;
+	for (int i = 0; i < 100000000; i++) {
+		
 	}
+
 	return -1;
 }
 
@@ -253,6 +257,39 @@ process_exit (void) {
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
 	process_cleanup ();
+}
+
+/* Argument Passing */
+/* 유저 스택에 프로그램 이름과 인자들을 저장하는 함수 */
+void
+argument_stack (char **parse, int count, void **rsp) {
+	for (int i = count - 1; i >= 0; i--) {
+		int parse_len = strlen(parse[i]);
+		for (int j = parse_len; j >= 0; j--) {
+			char parse_char = parse[i][j];
+			(*rsp)--;
+			**(char **)rsp = parse_char;
+		}
+		parse[i] = *(char **)rsp;
+	}
+
+	int padding = (int)*rsp % 8;
+
+	for (int i = 0; i < padding; i++) {
+		(*rsp)--;
+		**(uint8_t **)rsp = 0;
+	}
+
+	(*rsp) -= 8;
+	**(char ***)rsp = 0;
+
+	for (int i = count -1; i > -1; i--) {
+		(*rsp) -= 8;
+		**(char ***)rsp = parse[i];
+	}
+
+	(*rsp) -= 8;
+	**(void ***)rsp = 0;
 }
 
 /* Free the current process's resources. */
@@ -504,39 +541,6 @@ validate_segment (const struct Phdr *phdr, struct file *file) {
 
 	/* It's okay. */
 	return true;
-}
-
-/* Argument Passing */
-/* 유저 스택에 프로그램 이름과 인자들을 저장하는 함수 */
-void
-argument_stack (char **parse, int count, void **rsp) {
-	for (int i = count - 1; i >= 0; i--) {
-		int parse_len = strlen(parse[i]);
-		for (int j = parse_len; j >= 0; j--) {
-			char parse_char = parse[i][j];
-			(*rsp)--;
-			**(char **)rsp = parse_char;
-		}
-		parse[i] = *(char **)rsp;
-	}
-
-	int padding = (int)*rsp % 8;
-
-	for (int i = 0; i < padding; i++) {
-		(*rsp)--;
-		**(uint8_t **)rsp = 0;
-	}
-
-	(*rsp) -= 8;
-	**(char ***)rsp = 0;
-
-	for (int i = count -1; i > -1; i--) {
-		(*rsp) -= 8;
-		**(char ***)rsp = parse[i];
-	}
-
-	(*rsp) -= 8;
-	**(void ***)rsp = 0;
 }
 
 #ifndef VM
