@@ -172,10 +172,10 @@ process_exec (void *f_name) {
 	/* Argument Passing */
 	// file_name 문자열 파싱
 	// argument_stack () 함수를 사용해서 스택에 토큰을 저장
-	char *argv[64];
-	int argc = 0;
+	char *parse[64];
 	char *token;
 	char *save_ptr;
+	int count = 0;
 
 	/* We cannot use the intr_frame in the thread structure.
 	 * This is because when current thread rescheduled,
@@ -192,22 +192,24 @@ process_exec (void *f_name) {
 	token = strtok_r (file_name, " ", &save_ptr);
 
 	while (token != NULL) {
-		argv[argc] = token;
+		parse[count] = token;
 		token = strtok_r (NULL, " ", &save_ptr);
-		argc++;
+		count++;
 	}
 
 	/* And then load the binary */
 	success = load (file_name, &_if);
 
+	/* Argument Passing */
 	/* If load failed, quit. */
-	palloc_free_page (file_name);
-	if (!success)
+	if (!success) {
+		palloc_free_page (file_name);
 		return -1;
+	}
 
 	/* Argument Passing */
 	void **rspp = &_if.rsp;
-	_if.R.rdi = argc;
+	_if.R.rdi = count;
 	_if.R.rsi = (uint64_t) *rrsp - sizeof (void *);
 
 	hex_dump(_if.rsp, _if.rsp, USER_STACK - (uint64_t) *rspp, true);
@@ -507,8 +509,34 @@ validate_segment (const struct Phdr *phdr, struct file *file) {
 /* Argument Passing */
 /* 유저 스택에 프로그램 이름과 인자들을 저장하는 함수 */
 void
-argument_stack (char **parse, int count, void **esp) {
+argument_stack (char **parse, int count, void **rsp) {
+	for (int i = count - 1; i >= 0; i--) {
+		int parse_len = strlen(parse[i]);
+		for (int j = parse_len; j >= 0; j--) {
+			char parse_char = parse[i][j];
+			(*rsp)--;
+			**(char **)rsp = parse_char;
+		}
+		parse[i] = *(char **)rsp;
+	}
 
+	int padding = (int)*rsp % 8;
+
+	for (int i = 0; i < padding; i++) {
+		(*rsp)--;
+		**(uint8_t **)rsp = 0;
+	}
+
+	(*rsp) -= 8;
+	**(char ***)rsp = 0;
+
+	for (int i = count -1; i > -1; i--) {
+		(*rsp) -= 8;
+		**(char ***)rsp = parse[i];
+	}
+
+	(*rsp) -= 8;
+	**(void ***)rsp = 0;
 }
 
 #ifndef VM
