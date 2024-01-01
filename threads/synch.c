@@ -231,6 +231,7 @@ lock_try_acquire (struct lock *lock) {
 	return success;
 }
 
+// error
 /* Releases LOCK, which must be owned by the current thread.
    This is lock_release function.
 
