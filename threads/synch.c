@@ -113,8 +113,7 @@ sema_up (struct semaphore *sema) {
 	/* Priority Scheduling and Synchronization */
 	if (!list_empty (&sema->waiters)) {
 		list_sort (&sema->waiters, cmp_priority, NULL);
-		thread_unblock (list_entry (list_pop_front (&sema->waiters),
-					struct thread, elem));
+		thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem));
 	}
 	sema->value++;
 	/* Priority Scheduling and Synchronization */
@@ -198,12 +197,16 @@ lock_acquire (struct lock *lock) {
 	struct thread *curr = thread_current ();
 
 	/* Multi Level Feedback Queue Scheduler */
-	if (!thread_mlfqs) {
-		if (lock->holder) {
-			curr->wait_on_lock = lock;
-			list_insert_ordered (&lock->holder->donations, &curr->donation_elem, cmp_donate_priority, NULL);
-			donate_priority ();
-		}
+	if (thread_mlfqs) {
+		sema_down (&lock->semaphore);
+		lock->holder = curr;
+		return;
+	}
+	
+	if (lock->holder) {
+		curr->wait_on_lock = lock;
+		list_insert_ordered (&lock->holder->donations, &curr->donation_elem, cmp_donate_priority, NULL);
+		donate_priority ();
 	}
 
 	sema_down (&lock->semaphore);
