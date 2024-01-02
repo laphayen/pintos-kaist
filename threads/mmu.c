@@ -199,6 +199,7 @@ pml4_destroy (uint64_t *pml4) {
 	palloc_free_page ((void *) pml4);
 }
 
+// error - is_kernel_vaddr
 /* Loads page directory PD into the CPU's page directory base
  * register. */
 void
