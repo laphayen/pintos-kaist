@@ -54,7 +54,7 @@ static long long kernel_ticks;  /* # of timer ticks in kernel threads. */
 static long long user_ticks;    /* # of timer ticks in user programs. */
 
 /* Alarm Clcok */
-static unsigned next_tick_to_awake;
+static int64_t next_tick_to_awake;
 
 /* Multi Level Feedback Queue Scheduler */
 int load_avg;
@@ -484,8 +484,8 @@ init_thread (struct thread *t, const char *name, int priority) {
 
 	/* Priority Inversion */
 	t->init_priority = priority;
-	t->wait_on_lock = NULL;
-	list_init (&t->donations);
+    t->wait_on_lock = NULL;
+    list_init (&t->donations);
 
 	/* Multi Level Feedback Queue Scheduler */
 	t->nice = NICE_DEFAULT;
