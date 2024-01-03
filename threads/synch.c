@@ -114,7 +114,7 @@ sema_up (struct semaphore *sema) {
 	if (!list_empty (&sema->waiters)) {
 		list_sort(&sema->waiters, &cmp_priority, NULL);
 		thread_unblock (list_entry (list_pop_front (&sema->waiters),
-                                struct thread, elem));
+					struct thread, elem));
  	}
 	sema->value++;
 	/* Priority Scheduling and Synchronization */
@@ -206,7 +206,7 @@ lock_acquire (struct lock *lock) {
 	
 	if (lock->holder) {
 		curr->wait_on_lock = lock;
-		list_insert_ordered (&lock->holder->donations, &curr->donation_elem, cmp_priority, 0);
+		list_insert_ordered (&lock->holder->donations, &curr->donation_elem, cmp_donate_priority, 0);
 		donate_priority ();
 	}
 
@@ -235,7 +235,6 @@ lock_try_acquire (struct lock *lock) {
 	return success;
 }
 
-// error
 /* Releases LOCK, which must be owned by the current thread.
    This is lock_release function.
 
@@ -318,8 +317,7 @@ cond_wait (struct condition *cond, struct lock *lock) {
 
 	sema_init (&waiter.semaphore, 0);
 	/* Priority Scheduling and Synchronization */
-	list_insert_ordered(&cond->waiters, &waiter.elem, cmp_sema_priority, NULL);
-
+	list_insert_ordered (&cond->waiters, &waiter.elem, cmp_sem_priority, NULL);
 	lock_release (lock);
 	sema_down (&waiter.semaphore);
 	lock_acquire (lock);
@@ -341,7 +339,7 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED) {
 
 	/* Priority Scheduling and Synchronization */
 	if (!list_empty (&cond->waiters)) {
-		list_sort(&cond->waiters, cmp_sema_priority, NULL);
+		list_sort (&cond->waiters, cmp_sem_priority, NULL);
 		sema_up (&list_entry (list_pop_front (&cond->waiters),
 					struct semaphore_elem, elem)->semaphore);
 	}
@@ -367,15 +365,15 @@ cond_broadcast (struct condition *cond, struct lock *lock) {
 /* Compare the highest priority threads waiting for the semaphore 
  * provided as the first argument and the semaphore provided as the second argument. */
 bool
-cmp_sema_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
-{
-	struct semaphore_elem *sa = list_entry(a, struct semaphore_elem, elem);
-	struct semaphore_elem *sb = list_entry(b, struct semaphore_elem, elem);
-	struct list_elem *sa_e = list_begin(&(sa->semaphore.waiters));
-	struct list_elem *sb_e = list_begin(&(sb->semaphore.waiters));
+cmp_sem_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
+	struct semaphore_elem *semaphore_elem_a = list_entry (a, struct semaphore_elem, elem);
+	struct semaphore_elem *semaphore_elem_b = list_entry (b, struct semaphore_elem, elem);
 
-	struct thread *sa_t = list_entry(sa_e, struct thread, elem);
-	struct thread *sb_t = list_entry(sb_e, struct thread, elem);
+	struct list *waiter_list_a = &(semaphore_elem_a->semaphore.waiters);
+	struct list *waiter_list_b = &(semaphore_elem_b->semaphore.waiters);
 
-	return (sa_t->priority) > (sb_t->priority);
+	struct thread *thread_a = list_entry (list_begin (waiter_list_a), struct thread, elem);
+	struct thread *thread_b = list_entry (list_begin (waiter_list_b), struct thread, elem);
+
+	return thread_a->priority > thread_b->priority;
 }
