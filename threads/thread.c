@@ -484,8 +484,8 @@ init_thread (struct thread *t, const char *name, int priority) {
 
 	/* Priority Inversion */
 	t->init_priority = priority;
-    t->wait_on_lock = NULL;
-    list_init (&t->donations);
+	t->wait_on_lock = NULL;
+	list_init (&t->donations);
 
 	/* Multi Level Feedback Queue Scheduler */
 	t->nice = NICE_DEFAULT;
@@ -730,11 +730,16 @@ get_next_tick_to_awake (void) {
 /* Compare the priority of the currently running thread with the highest priority thread and schedule accordingly. */
 void 
 test_max_priority (void) {
-	struct list_elem *highest_pri_elem = list_begin(&ready_list);
-	struct thread *highest_pri_thread = list_entry(highest_pri_elem, struct thread, elem);
+	if (thread_current () == idle_thread) {
+		return;
+	}
 
-	if (thread_current()->priority < highest_pri_thread->priority) {
-		thread_yield ();
+	if (!(list_empty (&ready_list))) {
+		struct thread *highest_thread = list_entry (list_front (&ready_list), struct thread, elem);
+
+		if (thread_get_priority () < highest_thread->priority) {
+			thread_yield ();
+		}
 	}
 }
 
