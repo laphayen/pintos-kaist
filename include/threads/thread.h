@@ -5,6 +5,7 @@
 #include <list.h>
 #include <stdint.h>
 #include "threads/interrupt.h"
+#include "threads/synch.h"
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -174,7 +175,7 @@ bool cmp_priority (const struct list_elem *a, const struct list_elem *b, void *a
 
 /* Priority Inversion */
 void donate_priority (void);
-void remove_with_lock (struct lock * lock);
+void remove_with_lock (struct lock *lock);
 void refresh_priority (void);
 bool cmp_donate_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 
