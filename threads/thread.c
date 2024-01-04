@@ -54,7 +54,7 @@ static long long kernel_ticks;  /* # of timer ticks in kernel threads. */
 static long long user_ticks;    /* # of timer ticks in user programs. */
 
 /* Alarm Clcok */
-static long long next_tick_to_awake;
+static int64_t next_tick_to_awake;
 
 /* Multi Level Feedback Queue Scheduler */
 int load_avg;
@@ -329,10 +329,10 @@ thread_yield (void) {
 	ASSERT (!intr_context ());
 
 	old_level = intr_disable ();
-	if (curr != idle_thread)
+	if (curr != idle_thread) {
 		/* Priority Scheduling */
 		list_insert_ordered(&ready_list, &curr->elem, cmp_priority, NULL);
-	
+	}
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
 }
@@ -341,20 +341,29 @@ thread_yield (void) {
 void
 thread_set_priority (int new_priority) {
 	/* Multi Level Feedback Queue Scheduler */
-	if (!thread_mlfqs) {
-		/* Priority Inversion */
-		thread_current ()->init_priority = new_priority;
-		refresh_priority ();
-
-		/* Priority Scheduling */
-		test_max_priority ();
+	if (thread_mlfqs) {
+		return ;
 	}
+	
+	/* Priority Inversion */
+	thread_current ()->init_priority = new_priority;
+	refresh_priority ();
+	donate_priority ();
+
+	/* Priority Scheduling */
+	test_max_priority ();
 }
 
 /* Returns the current thread's priority. */
 int
 thread_get_priority (void) {
-	return thread_current ()->priority;
+	enum intr_level old_level = intr_disable ();
+	
+	int priority_value = thread_current ()->priority;
+
+	intr_set_level (old_level);
+
+	return priority_value;
 }
 
 /* Sets the current thread's nice value to NICE. */
@@ -721,11 +730,16 @@ get_next_tick_to_awake (void) {
 /* Compare the priority of the currently running thread with the highest priority thread and schedule accordingly. */
 void 
 test_max_priority (void) {
-	struct list_elem *highest_pri_elem = list_begin(&ready_list);
-	struct thread *highest_pri_thread = list_entry(highest_pri_elem, struct thread, elem);
+	if (thread_current () == idle_thread) {
+		return;
+	}
 
-	if (thread_current()->priority < highest_pri_thread->priority) {
-		thread_yield ();
+	if (!(list_empty (&ready_list))) {
+		struct thread *highest_thread = list_entry (list_front (&ready_list), struct thread, elem);
+
+		if (thread_get_priority () < highest_thread->priority) {
+			thread_yield ();
+		}
 	}
 }
 

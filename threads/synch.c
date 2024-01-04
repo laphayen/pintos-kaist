@@ -198,12 +198,16 @@ lock_acquire (struct lock *lock) {
 	struct thread *curr = thread_current ();
 
 	/* Multi Level Feedback Queue Scheduler */
-	if (!thread_mlfqs) {
-		if (lock->holder) {
-			curr->wait_on_lock = lock;
-			list_insert_ordered (&lock->holder->donations, &curr->donation_elem, cmp_donate_priority, NULL);
-			donate_priority ();
-		}
+	if (thread_mlfqs) {
+		sema_down (&lock->semaphore);
+		lock->holder = curr;
+		return;
+	}
+	
+	if (lock->holder) {
+		curr->wait_on_lock = lock;
+		list_insert_ordered (&lock->holder->donations, &curr->donation_elem, cmp_donate_priority, 0);
+		donate_priority ();
 	}
 
 	sema_down (&lock->semaphore);
@@ -242,14 +246,17 @@ lock_release (struct lock *lock) {
 	ASSERT (lock != NULL);
 	ASSERT (lock_held_by_current_thread (lock));
 	
+	lock->holder = NULL;
+
 	/* Multi Level Feedback Queue Scheduler */
-	if (!thread_mlfqs) {
+	if (thread_mlfqs) {
 		/* Priority Inversion */
-		remove_with_lock (lock);
-		refresh_priority ();
+		sema_up (&lock->semaphore);
+		return ;
 	}
 
-	lock->holder = NULL;
+	remove_with_lock (lock);
+	refresh_priority ();
 	sema_up (&lock->semaphore);
 }
 
@@ -331,9 +338,8 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED) {
 	ASSERT (lock_held_by_current_thread (lock));
 
 	/* Priority Scheduling and Synchronization */
-	if (!list_empty (&cond->waiters))
-	{
-		list_sort(&cond->waiters, cmp_sem_priority, NULL);
+	if (!list_empty (&cond->waiters)) {
+		list_sort (&cond->waiters, cmp_sem_priority, NULL);
 		sema_up (&list_entry (list_pop_front (&cond->waiters),
 					struct semaphore_elem, elem)->semaphore);
 	}
