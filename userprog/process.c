@@ -165,6 +165,12 @@ process_exec (void *f_name) {
 	char *file_name = f_name;
 	bool success;
 
+	/* Argument Passing */
+	char *parse[64];
+	char *token;
+	char *save_ptr;
+	int count = 0;
+
 	/* We cannot use the intr_frame in the thread structure.
 	 * This is because when current thread rescheduled,
 	 * it stores the execution information to the member. */
@@ -176,13 +182,34 @@ process_exec (void *f_name) {
 	/* We first kill the current context */
 	process_cleanup ();
 
+	/* Argument Passing */
+	token = strtok_r (file_name, " ", &save_ptr);
+	while (token != NULL) {
+		parse[count] = token;
+		token = strtok_r (NULL, " ", &save_ptr);
+		count++;
+	}
+
 	/* And then load the binary */
 	success = load (file_name, &_if);
 
-	/* If load failed, quit. */
+	/* Argument Passing */
+	argument_stack (parse, count, &_if.rsp);
+	_if.R.rdi = count;
+	_if.R.rsi = parse[0];
+
+	/* Argument Passing */
+	hex_dump (_if.rsp, _if.rsp, USER_STACK - (uint64_t)_if.rsp, true);
+
+	/* Argument Passing */
 	palloc_free_page (file_name);
-	if (!success)
+
+	/* Argument Passing */
+	/* If load failed, quit. */
+	if (!success) {
+		palloc_free_page (file_name);
 		return -1;
+	}
 
 	/* Start switched process. */
 	do_iret (&_if);
@@ -204,6 +231,11 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
+	/* Argument Passing */
+	for (int i = 0; i < 1000000000; i++) {
+
+	}
+
 	return -1;
 }
 
@@ -218,6 +250,39 @@ process_exit (void) {
 
 	process_cleanup ();
 }
+
+/* Argument Passing */
+void
+argument_stack (char **parse, int count, void **rsp) {
+	for (int i = count - 1; i > -1; i--) {
+		int parse_len = strlen (parse[i]);
+		for (int j = parse_len; j > -1; j--) {
+			char parse_char = parse[i][j];
+			(*rsp)--;
+			**(char **)rsp = parse_char;
+		}
+		parse[i] = *(char **)rsp;
+	}
+
+	int padding = (int)*rsp % 8;
+
+	for (int i = 0; i < padding; i++) {
+		(*rsp)--;
+		**(uint8_t **)rsp = 0;
+	}
+
+	(*rsp) -= 8;
+	**(char ***)rsp = 0;
+
+	for (int i = count - 1; i > -1; i--) {
+		(*rsp) -= 8;
+		**(char ***)rsp = parse[i];
+	}
+
+	(*rsp) -= 8;
+	**(void ***)rsp = 0;
+}
+
 
 /* Free the current process's resources. */
 static void
