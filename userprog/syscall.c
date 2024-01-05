@@ -44,3 +44,16 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	printf ("system call!\n");
 	thread_exit ();
 }
+
+/* User Memory Access */
+// 주소 값이 유저 영역에서 사용하는 주소 값인지 확인
+// 유저 영역을 벗어난 영역일 경우 프로세스 종료
+void
+check_address (void *addr) {
+	if (addr == NULL) {
+		exit (-1);
+	}
+	if (!is_user_vaddr (addr)) {
+		exit (-1);
+	}
+}
