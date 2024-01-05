@@ -1,4 +1,4 @@
 source activate
-cd threads
+cd userprog
 make clean
 make check

@@ -27,10 +27,9 @@ MLFQS_NICE_2="pintos -v -k -T 480 -m 20   -- -q  -mlfqs run mlfqs-nice-2"
 MLFQS_NICE_10="pintos -v -k -T 480 -m 20   -- -q  -mlfqs run mlfqs-nice-10"
 MLFQS_BLOCK="pintos -v -k -T 480 -m 20   -- -q  -mlfqs run mlfqs-block"
 
-cd threads
+cd userprog
 make clean
 make
 cd build
 source ../../activate
-
-$MLFQS_RECENT_1
+pintos --fs-disk=10 -p tests/userprog/args-single:args-single -- -q -f run 'args-single onearg'
