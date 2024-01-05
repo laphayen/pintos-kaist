@@ -216,7 +216,6 @@ process_exec (void *f_name) {
 	NOT_REACHED ();
 }
 
-
 /* Waits for thread TID to die and returns its exit status.  If
  * it was terminated by the kernel (i.e. killed due to an
  * exception), returns -1.  If TID is invalid or if it was not a
@@ -285,7 +284,6 @@ argument_stack (char **parse, int count, void **rsp) {
 	(*rsp) -= 8;
 	**(void ***)rsp = 0;
 }
-
 
 /* Free the current process's resources. */
 static void
