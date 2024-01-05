@@ -194,6 +194,13 @@ process_exec (void *f_name) {
 	success = load (file_name, &_if);
 
 	/* Argument Passing */
+	/* If load failed, quit. */
+	if (!success) {
+		palloc_free_page (file_name);
+		return -1;
+	}
+
+	/* Argument Passing */
 	argument_stack (parse, count, &_if.rsp);
 	_if.R.rdi = count;
 	_if.R.rsi = parse[0];
@@ -203,13 +210,6 @@ process_exec (void *f_name) {
 
 	/* Argument Passing */
 	palloc_free_page (file_name);
-
-	/* Argument Passing */
-	/* If load failed, quit. */
-	if (!success) {
-		palloc_free_page (file_name);
-		return -1;
-	}
 
 	/* Start switched process. */
 	do_iret (&_if);
@@ -232,7 +232,7 @@ process_wait (tid_t child_tid UNUSED) {
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
 	/* Argument Passing */
-	for (int i = 0; i < 1000000000; i++) {
+	for (int i = 0; i < 100000000; i++) {
 
 	}
 
@@ -254,10 +254,13 @@ process_exit (void) {
 /* Argument Passing */
 void
 argument_stack (char **parse, int count, void **rsp) {
+	int parse_len;
+	char parse_char;
+
 	for (int i = count - 1; i > -1; i--) {
-		int parse_len = strlen (parse[i]);
+		parse_len = strlen (parse[i]);
 		for (int j = parse_len; j > -1; j--) {
-			char parse_char = parse[i][j];
+			parse_char = parse[i][j];
 			(*rsp)--;
 			**(char **)rsp = parse_char;
 		}
