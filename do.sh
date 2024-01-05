@@ -27,19 +27,9 @@ MLFQS_NICE_2="pintos -v -k -T 480 -m 20   -- -q  -mlfqs run mlfqs-nice-2"
 MLFQS_NICE_10="pintos -v -k -T 480 -m 20   -- -q  -mlfqs run mlfqs-nice-10"
 MLFQS_BLOCK="pintos -v -k -T 480 -m 20   -- -q  -mlfqs run mlfqs-block"
 
-# userprog
-ARGS_NONE="pintos -v -k -T 60 -m 20   --fs-disk=10 -p tests/userprog/args-none:args-none -- -q   -f run args-none"
-ARGS_SINGLE="pintos --fs-disk=10 -p tests/userprog/args-single:args-single -- -q -f run 'args-single onearg'"
-ARGS_MULTIPLE="pintos -v -k -T 60 -m 20   --fs-disk=10 -p tests/userprog/args-multiple:args-multiple -- -q   -f run 'args-multiple some arguments for you!' "
-ARGS_MANY="pintos -v -k -T 60 -m 20   --fs-disk=10 -p tests/userprog/args-many:args-many -- -q   -f run 'args-many a b c d e f g h i j k l m n o p q r s t u v'"
-ARGS_DBL_SPACE="pintos -v -k -T 60 -m 20   --fs-disk=10 -p tests/userprog/args-dbl-space:args-dbl-space -- -q   -f run 'args-dbl-space two  spaces!'"
-EXIT="pintos -v -k -T 60 -m 20   --fs-disk=10 -p tests/userprog/exit:exit -- -q   -f run exit"
-CREATE_EMPTY="pintos -v -k -T 60 -m 20   --fs-disk=10 -p tests/userprog/create-empty:create-empty -- -q   -f run create-empty"
-
 cd userprog
 make clean
 make
 cd build
 source ../../activate
-
-$ARGS_NONE
+pintos --fs-disk=10 -p tests/userprog/args-single:args-single -- -q -f run 'args-single onearg'
