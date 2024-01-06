@@ -8,6 +8,9 @@
 #include "threads/flags.h"
 #include "intrinsic.h"
 
+/* System Call */
+#include "threads/init.h"
+
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
 
@@ -40,8 +43,31 @@ syscall_init (void) {
 /* The main system call interface */
 void
 syscall_handler (struct intr_frame *f UNUSED) {
-	// TODO: Your implementation goes here.
-	printf ("system call!\n");
+	/* System Call */
+	int call_number = f->R.rax;
+
+	switch (call_number) {
+		case SYS_HALT:
+			halt ();
+			break ;
+		case SYS_EXIT:
+			exit (f->R.rdi);
+			break;
+	}
+
+}
+
+/* System Call */
+void
+halt (void) {
+	power_off ();
+}
+
+/* System Call */
+void
+exit (int status) {
+	struct thread *curr = thread_current ();
+	curr->status = status;
 	thread_exit ();
 }
 
