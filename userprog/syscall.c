@@ -46,14 +46,12 @@ syscall_handler (struct intr_frame *f UNUSED) {
 }
 
 /* User Memory Access */
-// 주소 값이 유저 영역에서 사용하는 주소 값인지 확인
-// 유저 영역을 벗어난 영역일 경우 프로세스 종료
+/* Check if the address value is within the range of addresses used by the user space. */
+/* If the address is outside the user space, terminate the process. */
 void
 check_address (void *addr) {
-	if (addr == NULL) {
-		exit (-1);
-	}
-	if (!is_user_vaddr (addr)) {
-		exit (-1);
+	struct thread *curr = thread_current ();
+	if (addr == NULL || !(is_user_vaddr (addr)) || pml4_get_page(curr->pml4, addr) == NULL) {
+		exit(-1);
 	}
 }
