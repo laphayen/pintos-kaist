@@ -44,3 +44,14 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	printf ("system call!\n");
 	thread_exit ();
 }
+
+/* User Memory Access */
+/* Check if the address value is within the range of addresses used by the user space. */
+/* If the address is outside the user space, terminate the process. */
+void
+check_address (void *addr) {
+	struct thread *curr = thread_current ();
+	if (addr == NULL || is_kernel_vaddr(addr) || pml4_get_page(curr->pml4, addr) == NULL) {
+		exit(-1);
+	}
+}
