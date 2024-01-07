@@ -10,6 +10,7 @@
 
 /* System Call */
 #include "threads/init.h"
+#include "threads/palloc.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -52,9 +53,29 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break ;
 		case SYS_EXIT:
 			exit (f->R.rdi);
-			break;
+			break ;
+		case SYS_FORK:
+			fork (f->R.rdi, f);
+			break ;
+		case SYS_EXEC:
+			exec (f->R.rdi);
+			break ;
+		case SYS_WAIT:
+			wait (f->R.rdi);
+
 	}
 
+}
+
+/* User Memory Access */
+/* Check if the address value is within the range of addresses used by the user space. */
+/* If the address is outside the user space, terminate the process. */
+void
+check_address (void *addr) {
+	struct thread *curr = thread_current ();
+	if (addr == NULL || is_kernel_vaddr(addr) || pml4_get_page(curr->pml4, addr) == NULL) {
+		exit(-1);
+	}
 }
 
 /* System Call */
@@ -68,16 +89,51 @@ void
 exit (int status) {
 	struct thread *curr = thread_current ();
 	curr->status = status;
+	printf ("%s: exit(%d)\n", thread_name (), status);
 	thread_exit ();
 }
 
-/* User Memory Access */
-/* Check if the address value is within the range of addresses used by the user space. */
-/* If the address is outside the user space, terminate the process. */
-void
-check_address (void *addr) {
-	struct thread *curr = thread_current ();
-	if (addr == NULL || is_kernel_vaddr(addr) || pml4_get_page(curr->pml4, addr) == NULL) {
-		exit(-1);
+pid_t
+fork (const char *thread_name, struct intr_frame *f) {
+	return process_fork (thread_name, f);
+}
+
+int
+exec (const char *file) {
+	check_address (file);
+
+	int file_size = strlen (file) + 1;
+	char *file_copy = palloc_get_page (PAL_ZERO);
+
+	if (file_copy == NULL) {
+		exit (-1);
 	}
+
+	strlcpy (file_copy, file, file_size);
+
+	if (process_exec (file_copy) == -1) {
+		return -1;
+	}
+
+	NOT_REACHED ();
+	return 0;
+}
+
+int
+wait (pid_t pid) {
+	process_wait (pid);
+}
+
+bool
+create (const char *file, unsigned initial_size) {
+	check_address (file);
+
+	return filesys_create (file, initial_size);
+}
+
+bool
+remove (const char *file) {
+	check_address (file);
+
+	return filesys_remove (file);
 }
