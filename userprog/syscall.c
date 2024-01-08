@@ -11,6 +11,8 @@
 /* System Call */
 #include "threads/init.h"
 #include "threads/palloc.h"
+#include "filesys/filesys.h"
+#include "filesys/file.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -45,9 +47,7 @@ syscall_init (void) {
 void
 syscall_handler (struct intr_frame *f UNUSED) {
 	/* System Call */
-	int call_number = f->R.rax;
-
-	switch (call_number) {
+	switch (f->R.rax) {
 		case SYS_HALT:
 			halt ();
 			break ;
@@ -55,16 +55,48 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			exit (f->R.rdi);
 			break ;
 		case SYS_FORK:
-			fork (f->R.rdi, f);
+			f->R.rax = fork (f->R.rdi, f);
 			break ;
 		case SYS_EXEC:
 			exec (f->R.rdi);
 			break ;
 		case SYS_WAIT:
-			wait (f->R.rdi);
-
+			f->R.rax = wait (f->R.rdi);
+			break ;
+		case SYS_CREATE:
+			f->R.rax = (uint64_t) create (f->R.rdi, f->R.rsi);
+			break ;
+		case SYS_REMOVE:
+			f->R.rax = (uint64_t) remove (f->R.rdi);
+			break ;
+		case SYS_OPEN:
+			f->R.rax = (uint64_t) open (f->R.rdi);
+			break ;
+		case SYS_FILESIZE:
+			f->R.rax = (uint64_t) filesize (f->R.rdi);
+			break ;
+		case SYS_READ:
+			f->R.rax = (uint64_t) read (f->R.rdi, f->R.rsi, f->R.rdx);
+			break ;
+		case SYS_WRITE:
+			f->R.rax = (uint64_t) write (f->R.rdi, f->R.rsi, f->R.rdx);
+			break ;
+		case SYS_SEEK:
+			seek (f->R.rdi, f->R.rsi);
+			break ;
+		case SYS_TELL:
+		 	f->R.rax = (uint64_t) tell (f->R.rdi);
+			break ;
+		case SYS_CLOSE:
+			close (f->R.rdi);
+			break ;
+		case SYS_DUP2:
+			dup2 (f->R.rdi, f->R.rsi);
+			break;
+		default :
+			exit (-1);
+			break;
 	}
-
 }
 
 /* User Memory Access */
