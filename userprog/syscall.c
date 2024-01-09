@@ -21,19 +21,8 @@ void check_address (void *addr);
 /* System Call */
 void halt (void);
 void exit (int status);
-// int fork (const char *thread_name, struct intr_frame *f);
-// int exec (const char *file);
-// int wait (tid_t tid_t);
 bool create (const char *file, unsigned initial_size);
 bool remove (const char *file);
-// int open (const char *file);
-// int filesize (int fd);
-// int read (int fd, void *buffer, unsigned size);
-// int write (int fd, const void *buffer, unsigned size);
-// void seek (int fd, unsigned position);
-// unsigned tell (int fd);
-// void close (int fd);
-// int dup2 (int oldfd, int newfd);
 
 /* System call.
  *
@@ -72,46 +61,13 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break ;
 		case SYS_EXIT:
 			exit (f->R.rdi);
-		// case SYS_FORK:
-		// 	f->R.rax = fork (f->R.rdi, f);
-		// 	break ;
-		// case SYS_EXEC:
-		// 	// exec (f->R.rdi);
-		// 	break ;
-		// case SYS_WAIT:
-		// 	// f->R.rax = wait (f->R.rdi);
-		// 	break ;
+			break ;
 		case SYS_CREATE:
 			create (f->R.rdi, f->R.rsi);
 			break ;
 		case SYS_REMOVE:
 			remove (f->R.rdi);
 			break ;
-		// 	break ;
-		// case SYS_OPEN:
-		// 	f->R.rax = open (f->R.rdi);
-		// 	break ;
-		// case SYS_FILESIZE:
-		// 	// f->R.rax = filesize (f->R.rdi);
-		// 	break ;
-		// case SYS_READ:
-		// 	// f->R.rax = read (f->R.rdi, f->R.rsi, f->R.rdx);
-		// 	break ;
-		// case SYS_WRITE:
-		// 	f->R.rax = write (f->R.rdi, f->R.rsi, f->R.rdx);
-		// 	break ;
-		// case SYS_SEEK:
-		// 	// seek (f->R.rdi, f->R.rsi);
-		// 	break ;
-		// case SYS_TELL:
-		//  	// f->R.rax = tell (f->R.rdi);
-		// 	break ;
-		// case SYS_CLOSE:
-		// 	// close (f->R.rdi);
-		// 	break ;
-		// case SYS_DUP2:
-		// 	// dup2 (f->R.rdi, f->R.rsi);
-		// 	break;
 		default :
 			thread_exit ();
 	}
@@ -145,39 +101,6 @@ exit (int status) {
 	thread_exit ();
 }
 
-// int
-// fork (const char *thread_name, struct intr_frame *f) {
-// 	// check_address (thread_name);
-// 	// return process_fork (thread_name, f);
-// }
-
-// int
-// exec (const char *file) {
-	// check_address (file);
-
-	// int file_size = strlen (file) + 1;
-	// char *file_copy = palloc_get_page (PAL_ZERO);
-
-	// if (file_copy == NULL) {
-	// 	exit (-1);
-	// }
-
-	// strlcpy (file_copy, file, file_size);
-
-	// if (process_exec (file_copy) == -1) {
-	// 	return -1;
-	// }
-
-	// NOT_REACHED ();
-	// return 0;
-// }
-
-
-// int
-// wait (tid_t tid) {
-// 	process_wait (tid);
-// }
-
 /* System Call */
 /* 파일 이름과 사이즈를 인자 값으로 받아 파일을 생성하는 함수*/
 bool
@@ -193,51 +116,3 @@ remove (const char *file) {
 	check_address (file);
 	return filesys_remove (file);
 }
-
-// int
-// open (const char *file) {
-// 	check_address (file);
-
-// 	struct file *file_name = filesys_open (file);
-
-// 	if (file_name == NULL) {
-// 		return -1;
-// 	}
-
-	
-// }
-
-// int
-// filesize (int fd) {
-
-// }
-
-// int
-// read (int fd, void *buffer, unsigned size) {
-
-// }
-
-// int
-// write (int fd, const void *buffer, unsigned size) {
-
-// }
-
-// void
-// seek (int fd, unsigned position) {
-
-// }
-
-// unsigned
-// tell (int fd) {
-
-// }
-
-// void
-// close (int fd) {
-
-// }
-
-// int
-// dup2 (int oldfd, int newfd) {
-
-// }
