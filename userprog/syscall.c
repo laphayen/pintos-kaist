@@ -8,8 +8,21 @@
 #include "threads/flags.h"
 #include "intrinsic.h"
 
+/* System Call */
+#include "threads/init.h"
+#include "filesys/filesys.h"
+
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
+
+/* User Memory Access */
+void check_address (void *addr);
+
+/* System Call */
+void halt (void);
+void exit (int status);
+bool create (const char *file, unsigned initial_size);
+bool remove (const char *file);
 
 /* System call.
  *
@@ -40,9 +53,24 @@ syscall_init (void) {
 /* The main system call interface */
 void
 syscall_handler (struct intr_frame *f UNUSED) {
-	// TODO: Your implementation goes here.
-	printf ("system call!\n");
-	thread_exit ();
+	/* System Call */
+	int syscall_number = f->R.rax;
+	switch (syscall_number) {
+		case SYS_HALT:
+			halt ();
+			break ;
+		case SYS_EXIT:
+			exit (f->R.rdi);
+			break ;
+		case SYS_CREATE:
+			create (f->R.rdi, f->R.rsi);
+			break ;
+		case SYS_REMOVE:
+			remove (f->R.rdi);
+			break ;
+		default :
+			thread_exit ();
+	}
 }
 
 /* User Memory Access */
@@ -54,4 +82,37 @@ check_address (void *addr) {
 	if (addr == NULL || is_kernel_vaddr(addr) || pml4_get_page(curr->pml4, addr) == NULL) {
 		exit(-1);
 	}
+}
+
+/* System Call */
+/* A system call to shut down Pint OS. */
+void
+halt (void) {
+	power_off ();
+}
+
+/* System Call */
+/* A system call to terminate a thread. */
+void
+exit (int status) {
+	struct thread *curr = thread_current ();
+	curr->status = status;
+	printf ("%s: exit(%d)\n", thread_name (), status);
+	thread_exit ();
+}
+
+/* System Call */
+/* "A system call that takes a file name and size as arguments to create a file. */
+bool
+create (const char *file, unsigned initial_size) {
+	check_address (file);
+	return filesys_create (file, initial_size);
+}
+
+/* System Call */
+/* A function to remove a file corresponding to the file name. */
+bool
+remove (const char *file) {
+	check_address (file);
+	return filesys_remove (file);
 }

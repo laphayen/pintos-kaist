@@ -196,7 +196,7 @@ process_exec (void *f_name) {
 	/* Argument Passing */
 	/* If load failed, quit. */
 	if (!success) {
-		palloc_free_page (file_name);
+		// palloc_free_page (file_name);
 		return -1;
 	}
 
@@ -206,7 +206,7 @@ process_exec (void *f_name) {
 	_if.R.rsi = parse[0];
 
 	/* Argument Passing */
-	hex_dump (_if.rsp, _if.rsp, USER_STACK - (uint64_t)_if.rsp, true);
+	// hex_dump (_if.rsp, _if.rsp, USER_STACK - (uint64_t)_if.rsp, true);
 
 	/* Argument Passing */
 	palloc_free_page (file_name);
@@ -231,7 +231,7 @@ process_wait (tid_t child_tid UNUSED) {
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
 	/* Argument Passing */
-	for (int i = 0; i < 100000000; i++) {
+	for (int i = 0; i < 1000000000; i++) {
 
 	}
 
