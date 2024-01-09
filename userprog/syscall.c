@@ -85,14 +85,14 @@ check_address (void *addr) {
 }
 
 /* System Call */
-/* Pint OS를 종료시키는 함수 */
+/* A system call to shut down Pint OS. */
 void
 halt (void) {
 	power_off ();
 }
 
 /* System Call */
-/* 쓰레드를 종료시키는 함수 */
+/* A system call to terminate a thread. */
 void
 exit (int status) {
 	struct thread *curr = thread_current ();
@@ -102,7 +102,7 @@ exit (int status) {
 }
 
 /* System Call */
-/* 파일 이름과 사이즈를 인자 값으로 받아 파일을 생성하는 함수*/
+/* "A system call that takes a file name and size as arguments to create a file. */
 bool
 create (const char *file, unsigned initial_size) {
 	check_address (file);
@@ -110,7 +110,7 @@ create (const char *file, unsigned initial_size) {
 }
 
 /* System Call */
-/* 파일 이름에 해당하는 파일을 제거하는 함수*/
+/* A function to remove a file corresponding to the file name. */
 bool
 remove (const char *file) {
 	check_address (file);
