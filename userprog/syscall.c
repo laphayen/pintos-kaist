@@ -104,7 +104,7 @@ exit (int status) {
 /* System Call */
 /* 파일 이름과 사이즈를 인자 값으로 받아 파일을 생성하는 함수*/
 bool
-create(const char *file, unsigned initial_size) {
+create (const char *file, unsigned initial_size) {
 	check_address (file);
 	return filesys_create (file, initial_size);
 }
