@@ -15,5 +15,6 @@ void argument_stack (char **pasre, int count, void **rsp);
 
 /* Hierarchical Process Structure */
 struct thread *get_child_process (int pid);
+bool remove_child_process (struct thread *cp);
 
 #endif /* userprog/process.h */
