@@ -231,11 +231,23 @@ process_wait (tid_t child_tid UNUSED) {
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
 	/* Argument Passing */
+	/*
 	for (int i = 0; i < 1000000000; i++) {
 
 	}
+	*/
 
-	return -1;
+	struct thread *child = get_child_process (child_tid);
+	
+	if (child == NULL) {
+		return -1;
+	}
+
+	sema_down (&child->wait_sema);
+	list_remove (&child->child_elem);
+	sema_up (&child->exit_sema);
+
+	return child->exit_status;
 }
 
 /* Exit the process. This function is called by thread_exit (). */
@@ -283,6 +295,22 @@ argument_stack (char **parse, int count, void **rsp) {
 
 	(*rsp) -= 8;
 	**(void ***)rsp = 0;
+}
+
+/* Hierarchical Process Structure */
+struct thread *get_child_process (int pid) {
+	struct thread *curr = thread_current ();
+	struct list_elem *e;
+
+	for (e = list_begin(&curr->children_list); e != (&curr->children_list); e = list_next (e)) {
+		struct thread *child = list_entry (e, struct thread, child_elem);
+
+		if (child->tid == pid) {
+			return child;
+		}
+	}
+
+	return NULL;
 }
 
 /* Free the current process's resources. */
