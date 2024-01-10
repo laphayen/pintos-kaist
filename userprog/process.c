@@ -298,7 +298,8 @@ argument_stack (char **parse, int count, void **rsp) {
 }
 
 /* Hierarchical Process Structure */
-struct thread *get_child_process (int pid) {
+struct thread 
+*get_child_process (int pid) {
 	struct thread *curr = thread_current ();
 	struct list_elem *e;
 
@@ -311,6 +312,20 @@ struct thread *get_child_process (int pid) {
 	}
 
 	return NULL;
+}
+
+/* Hierarchical Process Structure */
+bool
+remove_child_process (struct thread *cp) {
+	if (cp == NULL) {
+		return false;
+	}
+
+	list_remove(&(cp->child_elem));
+
+	palloc_free_page (cp);
+
+	return true;
 }
 
 /* Free the current process's resources. */
