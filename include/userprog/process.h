@@ -13,4 +13,7 @@ void process_activate (struct thread *next);
 /* Argument Passing */
 void argument_stack (char **pasre, int count, void **rsp);
 
+/* Hierarchical Process Structure */
+struct thread *get_child_process (int pid);
+
 #endif /* userprog/process.h */
