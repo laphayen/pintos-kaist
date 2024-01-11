@@ -11,6 +11,7 @@
 /* System Call */
 #include "threads/init.h"
 #include "filesys/filesys.h"
+#include "threads/palloc.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -23,6 +24,9 @@ void halt (void);
 void exit (int status);
 bool create (const char *file, unsigned initial_size);
 bool remove (const char *file);
+
+int exec (const char *file);
+int wait (int pid);
 
 /* System call.
  *
@@ -68,6 +72,11 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_REMOVE:
 			remove (f->R.rdi);
 			break ;
+		case SYS_EXEC:
+			exec (f->R.rdi);
+		case SYS_WAIT:
+			wait (f->R.rdi);
+			break ;
 		default :
 			thread_exit ();
 	}
@@ -96,7 +105,7 @@ halt (void) {
 void
 exit (int status) {
 	struct thread *curr = thread_current ();
-	curr->status = status;
+	curr->exit_status = status;
 	printf ("%s: exit(%d)\n", thread_name (), status);
 	thread_exit ();
 }
@@ -115,4 +124,33 @@ bool
 remove (const char *file) {
 	check_address (file);
 	return filesys_remove (file);
+}
+
+/* System Call */
+int
+exec (const char *file) {
+	check_address (file);
+	
+	int file_size = strlen (file) + 1;
+	char *file_copy = palloc_get_page (PAL_ZERO);
+
+	if (file_copy == NULL) {
+		exit (-1);
+	}
+
+	strlcpy (file_copy, file, file_size);
+
+	if (process_exec (file_copy) == -1) {
+		return -1;
+	}
+
+	NOT_REACHED ();
+	
+	return 0;
+
+}
+
+int
+wait (int pid) {
+	return process_wait (pid);
 }
