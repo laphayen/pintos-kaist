@@ -13,6 +13,9 @@
 #include "filesys/filesys.h"
 #include "threads/palloc.h"
 
+// fd
+#include "lib/stdio.h"
+
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
 
@@ -27,6 +30,9 @@ bool remove (const char *file);
 
 int exec (const char *file);
 int wait (int pid);
+
+// fd
+int write (int fd, const void *buffer, unsigned size);
 
 /* System call.
  *
@@ -62,23 +68,26 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	switch (syscall_number) {
 		case SYS_HALT:
 			halt ();
-			break ;
+			break;
 		case SYS_EXIT:
 			exit (f->R.rdi);
-			break ;
-		case SYS_CREATE:
-			create (f->R.rdi, f->R.rsi);
-			break ;
-		case SYS_REMOVE:
-			remove (f->R.rdi);
-			break ;
+			break;
 		case SYS_EXEC:
-			exec (f->R.rdi);
+			if (exec (f->R.rdi) == -1) {
+				exit (-1);
+			}
+			break;
 		case SYS_WAIT:
-			wait (f->R.rdi);
-			break ;
-		default :
-			thread_exit ();
+			f->R.rax = wait (f->R.rdi);
+			break;
+		case SYS_CREATE:
+			f->R.rax = create (f->R.rdi, f->R.rsi);
+			break;
+		case SYS_REMOVE:
+			f->R.rax = remove (f->R.rdi);
+			break;
+		default:
+			break;
 	}
 }
 
@@ -131,26 +140,34 @@ int
 exec (const char *file) {
 	check_address (file);
 	
-	int file_size = strlen (file) + 1;
-	char *file_copy = palloc_get_page (PAL_ZERO);
+	struct thread *curr = thread_current ();
+	tid_t pid = process_create_initd (file);
 
-	if (file_copy == NULL) {
-		exit (-1);
+	struct thread *child = get_child_process (pid);
+
+	int result = process_wait (child);
+
+	list_push_back(&curr->child_list, &child->child_elem);
+
+	if (result == 1) {
+		return pid;
 	}
-
-	strlcpy (file_copy, file, file_size);
-
-	if (process_exec (file_copy) == -1) {
+	else {
 		return -1;
 	}
-
-	NOT_REACHED ();
-	
-	return 0;
 
 }
 
 int
 wait (int pid) {
 	return process_wait (pid);
+}
+
+// fd
+int write (int fd, const void *buffer, unsigned size) {
+	if (fd == STDOUT_FILENO) {
+		putbuf (buffer, size);
+	}
+
+	return size;
 }
