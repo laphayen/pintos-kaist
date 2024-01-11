@@ -33,6 +33,9 @@ typedef int tid_t;
 #define RECENT_CPU_DEFAULT 0
 #define LOAD_AVG_DEFAULT 0
 
+/* Hierarchical Process Structure */
+#define FDT_PAGES 3
+
 /* A kernel thread or user process.
  *
  * Each thread structure is stored in its own 4 kB page.  The
@@ -113,6 +116,28 @@ struct thread {
 	/* Multi Level Feedback Queue Scheduler */
 	int nice;
 	int recent_cpu;
+
+	/* Hierarchical Process Structure */
+	int **fd_table;
+
+	int child_success;
+	int exit_status;
+	
+	bool is_exit_successful;
+
+	// struct semaphore exit_sema;
+	// struct semaphore wait_sema;
+	
+	struct thread *parent_thread;
+	struct list children_list;
+	struct list_elem child_elem;
+
+	bool load_success;
+	bool exit_success;
+
+	// struct semaphore load_sema;
+	// struct semaphore exit_sema;
+
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
