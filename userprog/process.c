@@ -43,12 +43,20 @@ process_create_initd (const char *file_name) {
 	char *fn_copy;
 	tid_t tid;
 
+	/* Argument Passing */
+	char *parse[64];
+	char *token;
+	char *save_ptr;
+	
 	/* Make a copy of FILE_NAME.
 	 * Otherwise there's a race between the caller and load(). */
 	fn_copy = palloc_get_page (0);
 	if (fn_copy == NULL)
 		return TID_ERROR;
 	strlcpy (fn_copy, file_name, PGSIZE);
+
+	/* Argument Passing */
+	token = strtok_r (file_name, " ", &save_ptr);
 
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
@@ -231,38 +239,37 @@ process_wait (tid_t child_tid UNUSED) {
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
 	/* Argument Passing */
-	/*
+	
 	for (int i = 0; i < 1000000000; i++) {
 
 	}
-	*/
+	return -1;
 
-	struct thread *child = get_child_process (child_tid);
+	// struct thread *curr = thread_current ();
+	// struct thread *child = get_child_process (child_tid);
 	
-	if (child == NULL) {
-		return -1;
-	}
+	// if (child == NULL) {
+	// 	return -1;
+	// }
 
-	sema_down (&child->wait_sema);
-	list_remove (&child->child_elem);
-	sema_up (&child->exit_sema);
+	// sema_down (&child->wait_sema);
 
-	return child->exit_status;
+	// int exit_status = child->exit_status;
+	// list_remove (&child->child_elem);
+
+	// sema_up (&child->exit_sema);
+
+	// return child->exit_status;
 }
 
 /* Exit the process. This function is called by thread_exit (). */
 void
 process_exit (void) {
 	struct thread *curr = thread_current ();
-	struct thread *child = get_child_process (child_tid);
-	
-	/* Hierarchical Process Structure */
-	palloc_free_page (&curr->fd_table);
-	curr->parent_thread = NULL;
-
-	// while (!list_empty (&curr->child)) {
-	// 	list_pop_back (&curr->child);
-	// }
+	/* TODO: Your code goes here.
+	 * TODO: Implement process termination message (see
+	 * TODO: project2/process_termination.html).
+	 * TODO: We recommend you to implement process resource cleanup here. */
 
 	process_cleanup ();
 }
@@ -308,7 +315,7 @@ struct thread
 	struct thread *curr = thread_current ();
 	struct list_elem *e;
 
-	for (e = list_begin(&curr->children_list); e != (&curr->children_list); e = list_next (e)) {
+	for (e = list_begin(&curr->child_list); e != (&curr->child_list); e = list_next (e)) {
 		struct thread *child = list_entry (e, struct thread, child_elem);
 
 		if (child->tid == pid) {
