@@ -244,22 +244,6 @@ process_wait (tid_t child_tid UNUSED) {
 
 	}
 	return -1;
-
-	// struct thread *curr = thread_current ();
-	// struct thread *child = get_child_process (child_tid);
-	
-	// if (child == NULL) {
-	// 	return -1;
-	// }
-
-	// sema_down (&child->wait_sema);
-
-	// int exit_status = child->exit_status;
-	// list_remove (&child->child_elem);
-
-	// sema_up (&child->exit_sema);
-
-	// return child->exit_status;
 }
 
 /* Exit the process. This function is called by thread_exit (). */
