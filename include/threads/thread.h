@@ -5,6 +5,10 @@
 #include <list.h>
 #include <stdint.h>
 #include "threads/interrupt.h"
+
+/* Hierarchical Process Structure */
+#include "threads/synch.h"
+
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -118,25 +122,12 @@ struct thread {
 	int recent_cpu;
 
 	/* Hierarchical Process Structure */
-	int **fd_table;
-
-	int child_success;
 	int exit_status;
-	
-	bool is_exit_successful;
-
-	// struct semaphore exit_sema;
-	// struct semaphore wait_sema;
-	
-	struct thread *parent_thread;
-	struct list children_list;
+	struct intr_frame parent_if;
+	struct list child_list;
 	struct list_elem child_elem;
-
-	bool load_success;
-	bool exit_success;
-
-	// struct semaphore load_sema;
-	// struct semaphore exit_sema;
+	struct semaphore wait_sema;
+	struct semaphore free_sema;
 
 
 #ifdef USERPROG
