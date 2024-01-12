@@ -238,12 +238,27 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
-	/* Argument Passing */
-	
-	for (int i = 0; i < 1000000000; i++) {
 
+	/* Argument Passing */
+	/* for (int i = 0; i < 1000000000; i++) {
 	}
-	return -1;
+	return -1; */
+	
+	/* Hierarchical Process Structure */
+	struct thread *child =  get_child_process (child_tid);
+
+	if (child == NULL) {
+		return -1;
+	}
+
+	sema_down (&child->wait_sema);
+
+	int exit_status = child->exit_status;
+	remove_child_process (child);
+
+	sema_up (&child->free_sema);
+
+	return exit_status;
 }
 
 /* Exit the process. This function is called by thread_exit (). */
