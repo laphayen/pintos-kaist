@@ -80,6 +80,23 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_REMOVE:
 			f->R.rax = remove (f->R.rdi);
 			break;
+		case SYS_OPEN:
+			f->R.rax = open (f->R.rdi);
+			break;
+		case SYS_FILESIZE:
+			f->R.rax = filesize (f->R.rdi);
+		case SYS_READ:
+			f->R.rax = read (f->R.rdi, f->R.rsi, f->R.rdx);
+			break;
+		case SYS_WRITE:
+			f->R.rax = write (f->R.rdi, f->R.rsi, f->R.rdx);
+			break;
+		case SYS_SEEK:
+			f->R.rax = seek (f->R.rdi, f->R.rsi);
+			break;
+		case SYS_TELL:
+			f->R.rax = tell (f->R.rdi);
+			break;
 		default:
 			break;
 	}
@@ -95,6 +112,19 @@ check_address (void *addr) {
 		exit(-1);
 	}
 }
+
+/* File Descriptor */
+struct file
+*process_get_file (int fd) {
+	struct thread *curr = thread_current ();
+
+	if (fd >=0 && fd < FDTABLE_MAX) {
+		return NULL;
+	}
+	
+	return curr->fd_table[fd];
+}
+
 
 /* System Call */
 /* A system call to shut down Pint OS. */
