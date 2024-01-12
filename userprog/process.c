@@ -43,12 +43,20 @@ process_create_initd (const char *file_name) {
 	char *fn_copy;
 	tid_t tid;
 
+	/* Argument Passing */
+	char *parse[64];
+	char *token;
+	char *save_ptr;
+	
 	/* Make a copy of FILE_NAME.
 	 * Otherwise there's a race between the caller and load(). */
 	fn_copy = palloc_get_page (0);
 	if (fn_copy == NULL)
 		return TID_ERROR;
 	strlcpy (fn_copy, file_name, PGSIZE);
+
+	/* Argument Passing */
+	token = strtok_r (file_name, " ", &save_ptr);
 
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
@@ -230,12 +238,27 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
-	/* Argument Passing */
-	for (int i = 0; i < 1000000000; i++) {
 
+	/* Argument Passing */
+	/* for (int i = 0; i < 1000000000; i++) {
+	}
+	return -1; */
+	
+	/* Hierarchical Process Structure */
+	struct thread *child =  get_child_process (child_tid);
+
+	if (child == NULL) {
+		return -1;
 	}
 
-	return -1;
+	sema_down (&child->wait_sema);
+
+	int exit_status = child->exit_status;
+	remove_child_process (child);
+
+	sema_up (&child->free_sema);
+
+	return exit_status;
 }
 
 /* Exit the process. This function is called by thread_exit (). */
@@ -251,6 +274,7 @@ process_exit (void) {
 }
 
 /* Argument Passing */
+/* Store the program name and arguments on the user stack. */
 void
 argument_stack (char **parse, int count, void **rsp) {
 	int parse_len;
@@ -283,6 +307,39 @@ argument_stack (char **parse, int count, void **rsp) {
 
 	(*rsp) -= 8;
 	**(void ***)rsp = 0;
+}
+
+/* Hierarchical Process Structure */
+/* Search the child list to return the address of the process descriptor. */
+struct thread 
+*get_child_process (int pid) {
+	struct thread *curr = thread_current ();
+	struct list_elem *e;
+
+	for (e = list_begin (&curr->child_list); e != (&curr->child_list); e = list_next (e)) {
+		struct thread *child = list_entry (e, struct thread, child_elem);
+
+		if (child->tid == pid) {
+			return child;
+		}
+	}
+
+	return NULL;
+}
+
+/* Hierarchical Process Structure */
+/* Remove the process descriptor from the child list and release the associated memory. */
+bool
+remove_child_process (struct thread *cp) {
+	if (cp == NULL) {
+		return false;
+	}
+
+	list_remove (&cp->elem);
+
+	palloc_free_page (cp);
+
+	return true;
 }
 
 /* Free the current process's resources. */

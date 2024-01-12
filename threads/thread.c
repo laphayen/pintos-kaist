@@ -203,6 +203,9 @@ thread_create (const char *name, int priority,
 	struct thread *t;
 	tid_t tid;
 
+	/* Hierarchical Process Structure */
+	struct thread *curr = thread_current ();
+
 	ASSERT (function != NULL);
 
 	/* Allocate thread. */
@@ -224,6 +227,10 @@ thread_create (const char *name, int priority,
 	t->tf.ss = SEL_KDSEG;
 	t->tf.cs = SEL_KCSEG;
 	t->tf.eflags = FLAG_IF;
+
+	/* Hierarchical Process Structure */
+	t->child_elem;
+	list_push_back (&curr->child_list, &t->child_elem);
 
 	/* Add to run queue. */
 	thread_unblock (t);
@@ -490,6 +497,12 @@ init_thread (struct thread *t, const char *name, int priority) {
 	/* Multi Level Feedback Queue Scheduler */
 	t->nice = NICE_DEFAULT;
 	t->recent_cpu = LOAD_AVG_DEFAULT;
+
+	/* Hierarchical Process Structure */
+	t->exit_status = 0;
+	list_init (&t->child_list);
+	sema_init (&t->wait_sema, 0);
+	sema_init (&t->free_sema, 0);
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
