@@ -498,9 +498,6 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->nice = NICE_DEFAULT;
 	t->recent_cpu = LOAD_AVG_DEFAULT;
 
-	/* System Call */
-	t->exit_status = 0;
-
 	/* Hierarchical Process Structure */
 	t->exit_status = 0;
 	list_init(&t->child_list);
