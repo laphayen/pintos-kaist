@@ -37,9 +37,6 @@ typedef int tid_t;
 #define RECENT_CPU_DEFAULT 0
 #define LOAD_AVG_DEFAULT 0
 
-/* Hierarchical Process Structure */
-#define FDT_PAGES 3
-
 /* A kernel thread or user process.
  *
  * Each thread structure is stored in its own 4 kB page.  The
@@ -123,9 +120,11 @@ struct thread {
 
 	/* Hierarchical Process Structure */
 	int exit_status;
+	
 	struct intr_frame parent_if;
 	struct list child_list;
 	struct list_elem child_elem;
+
 	struct semaphore wait_sema;
 	struct semaphore free_sema;
 
