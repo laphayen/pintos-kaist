@@ -274,6 +274,7 @@ process_exit (void) {
 }
 
 /* Argument Passing */
+/* Store the program name and arguments on the user stack. */
 void
 argument_stack (char **parse, int count, void **rsp) {
 	int parse_len;
@@ -309,6 +310,7 @@ argument_stack (char **parse, int count, void **rsp) {
 }
 
 /* Hierarchical Process Structure */
+/* Search the child list to return the address of the process descriptor. */
 struct thread 
 *get_child_process (int pid) {
 	struct thread *curr = thread_current ();
@@ -326,6 +328,7 @@ struct thread
 }
 
 /* Hierarchical Process Structure */
+/* Remove the process descriptor from the child list and release the associated memory. */
 bool
 remove_child_process (struct thread *cp) {
 	if (cp == NULL) {
