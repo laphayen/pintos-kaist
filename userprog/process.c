@@ -316,7 +316,7 @@ struct thread
 	struct thread *curr = thread_current ();
 	struct list_elem *e;
 
-	for (e = list_begin(&curr->child_list); e != (&curr->child_list); e = list_next (e)) {
+	for (e = list_begin (&curr->child_list); e != (&curr->child_list); e = list_next (e)) {
 		struct thread *child = list_entry (e, struct thread, child_elem);
 
 		if (child->tid == pid) {
@@ -335,7 +335,7 @@ remove_child_process (struct thread *cp) {
 		return false;
 	}
 
-	list_remove(&(cp->child_elem));
+	list_remove (&cp->elem);
 
 	palloc_free_page (cp);
 
