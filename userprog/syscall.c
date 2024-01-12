@@ -13,9 +13,6 @@
 #include "filesys/filesys.h"
 #include "threads/palloc.h"
 
-// fd
-#include "lib/stdio.h"
-
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
 
@@ -28,11 +25,9 @@ void exit (int status);
 bool create (const char *file, unsigned initial_size);
 bool remove (const char *file);
 
+/* Hierarchical Process Structure */
 int exec (const char *file);
 int wait (int pid);
-
-// fd
-int write (int fd, const void *buffer, unsigned size);
 
 /* System call.
  *
@@ -135,7 +130,8 @@ remove (const char *file) {
 	return filesys_remove (file);
 }
 
-/* System Call */
+/* Hierarchical Process Structure */
+/* A system call to create a child process and execute a program. */
 int
 exec (const char *file) {
 	check_address (file);
@@ -158,16 +154,9 @@ exec (const char *file) {
 
 }
 
+/* Hierarchical Process Structure */
+/* A system call to wait until a child process exits. */
 int
 wait (int pid) {
 	return process_wait (pid);
-}
-
-// fd
-int write (int fd, const void *buffer, unsigned size) {
-	if (fd == STDOUT_FILENO) {
-		putbuf (buffer, size);
-	}
-
-	return size;
 }
