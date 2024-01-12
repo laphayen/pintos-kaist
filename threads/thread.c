@@ -203,6 +203,9 @@ thread_create (const char *name, int priority,
 	struct thread *t;
 	tid_t tid;
 
+	/* Hierarchical Process Structure */
+	struct thread *curr = thread_current ();
+
 	ASSERT (function != NULL);
 
 	/* Allocate thread. */
@@ -224,6 +227,10 @@ thread_create (const char *name, int priority,
 	t->tf.ss = SEL_KDSEG;
 	t->tf.cs = SEL_KCSEG;
 	t->tf.eflags = FLAG_IF;
+
+	/* Hierarchical Process Structure */
+	t->child_elem;
+	list_push_back (&curr->child_list, &t->child_elem);
 
 	/* Add to run queue. */
 	thread_unblock (t);
