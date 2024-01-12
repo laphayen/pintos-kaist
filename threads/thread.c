@@ -228,6 +228,20 @@ thread_create (const char *name, int priority,
 	t->tf.cs = SEL_KCSEG;
 	t->tf.eflags = FLAG_IF;
 
+	/* File Descriptor */
+	t->fd_table = palloc_get_multiple (PAL_ZERO, FDT_PAGES);
+
+	if (t->fd_table == NULL) {
+		return TID_ERROR;
+	}
+
+	t->fd_table[0] = 1;
+	t->fd_table[1] = 2;
+	t->fd_idx = 2;
+
+	t->stdin_count = 1;
+	t->stdout_count = 1;
+
 	/* Hierarchical Process Structure */
 	t->child_elem;
 	list_push_back (&curr->child_list, &t->child_elem);
