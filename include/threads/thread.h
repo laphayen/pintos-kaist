@@ -120,14 +120,13 @@ struct thread {
 
 	/* Hierarchical Process Structure */
 	int exit_status;
-	
+
 	struct intr_frame parent_if;
 	struct list child_list;
 	struct list_elem child_elem;
 
 	struct semaphore wait_sema;
 	struct semaphore free_sema;
-
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
