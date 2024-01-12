@@ -11,7 +11,6 @@
 /* System Call */
 #include "threads/init.h"
 #include "filesys/filesys.h"
-#include "threads/palloc.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -109,7 +108,10 @@ halt (void) {
 void
 exit (int status) {
 	struct thread *curr = thread_current ();
+
+	/* Hierarchical Process Structure */
 	curr->exit_status = status;
+
 	printf ("%s: exit(%d)\n", thread_name (), status);
 	thread_exit ();
 }
@@ -143,7 +145,7 @@ exec (const char *file) {
 
 	int result = process_wait (child);
 
-	list_push_back(&curr->child_list, &child->child_elem);
+	list_push_back (&curr->child_list, &child->child_elem);
 
 	if (result == 1) {
 		return pid;
@@ -151,7 +153,6 @@ exec (const char *file) {
 	else {
 		return -1;
 	}
-
 }
 
 /* Hierarchical Process Structure */
