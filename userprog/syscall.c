@@ -28,6 +28,11 @@ bool remove (const char *file);
 int exec (const char *file);
 int wait (int pid);
 
+/* File Descriptor */
+struct file *process_get_file (int fd);
+void process_add_file (struct file *f);
+void process_close_file (int fd);
+
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -113,19 +118,6 @@ check_address (void *addr) {
 	}
 }
 
-/* File Descriptor */
-struct file
-*process_get_file (int fd) {
-	struct thread *curr = thread_current ();
-
-	if (fd >=0 && fd < FDTABLE_MAX) {
-		return NULL;
-	}
-	
-	return curr->fd_table[fd];
-}
-
-
 /* System Call */
 /* A system call to shut down Pint OS. */
 void
@@ -190,4 +182,49 @@ exec (const char *file) {
 int
 wait (int pid) {
 	return process_wait (pid);
+}
+
+/* File Descriptor*/
+void
+process_add_file (struct file *f) {
+	struct thread *curr = thread_current ();
+	struct file **fdt = curr->fd_table;
+
+	while (curr->fd_idx < FDTABLE_MAX && fdt[curr->fd_idx]) {
+		curr->fd_idx++;
+	}
+
+	if (curr->fd_idx >= FDTABLE_MAX) {
+		return -1;
+	}
+
+	fdt[curr->fd_idx] = f;
+	
+	return curr->fd_idx;
+}
+
+/* File Descriptor */
+/* 파일 디스크립터에 해당하는 파일 객체를 리턴 */
+struct file
+*process_get_file (int fd) {
+	struct thread *curr = thread_current ();
+
+	if (fd >=0 && fd < FDTABLE_MAX) {
+		return NULL;
+	}
+	
+	return curr->fd_table[fd];
+}
+
+/* File Descriptor */
+/* 파일 디스크립터 테이블 해당 엔트리 초기화 */
+void
+process_close_file (int fd) {
+	struct thread *curr =  thread_current ();
+
+	if (fd >=0 && fd < FDTABLE_MAX) {
+		return NULL;
+	}
+
+	curr->fd_table[fd] = NULL;
 }
