@@ -33,8 +33,10 @@ struct file *process_get_file (int fd);
 void process_add_file (struct file *f);
 void process_close_file (int fd);
 
+/* File Descriptor */
 struct lock filesys_lock;
 
+/* File Descriptor */
 int open (const char *file);
 int read (int fd, void *buffer, unsigned size);
 
@@ -63,6 +65,9 @@ syscall_init (void) {
 	 * mode stack. Therefore, we masked the FLAG_FL. */
 	write_msr(MSR_SYSCALL_MASK,
 			FLAG_IF | FLAG_TF | FLAG_DF | FLAG_IOPL | FLAG_AC | FLAG_NT);
+
+	/* File Descriptor */
+	lock_init (&filesys_lock);
 }
 
 /* The main system call interface */
