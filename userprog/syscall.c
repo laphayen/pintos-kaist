@@ -36,6 +36,7 @@ void process_close_file (int fd);
 struct lock filesys_lock;
 
 int open (const char *file);
+int read (int fd, void *buffer, unsigned size);
 
 
 /* System call.
@@ -213,7 +214,23 @@ open (const char *file) {
 	return fd;
 }
 
+/* File Descriptor */
+int
+read (int fd, void *buffer, unsigned size) {
+	check_address (buffer);
 
+	if (fd == 1) {
+		return -1;
+	}
+
+	lock_acquire (&filesys_lock);
+
+	struct file *file_obj = process_get_file (fd);
+	unsigned char *buf = buffer;
+	
+	lock_release (&filesys_lock);
+
+}
 
 /* File Descriptor*/
 void
