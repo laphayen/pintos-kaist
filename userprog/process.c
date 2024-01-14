@@ -270,7 +270,29 @@ process_exit (void) {
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
+	/* File Descriptor */
+	struct file **fdt = curr->fd_table;
+
+	int count = 2;
+
+	while (count < 128) {
+		if (fdt[count]) {
+			file_close (fdt[count]);
+			fdt[count] = NULL;
+		}
+		count++;
+	}
+
+	palloc_free_page (fdt);
+
+	if (curr->running) {
+		file_close (curr->running);
+	}
+
 	process_cleanup ();
+
+	sema_up (&curr->wait_sema);
+	sema_down (&curr->free_sema);
 }
 
 /* Argument Passing */
