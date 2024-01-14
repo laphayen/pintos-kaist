@@ -33,6 +33,11 @@ struct file *process_get_file (int fd);
 void process_add_file (struct file *f);
 void process_close_file (int fd);
 
+struct lock filesys_lock;
+
+int open (const char *file);
+
+
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -88,20 +93,20 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_OPEN:
 			f->R.rax = open (f->R.rdi);
 			break;
-		case SYS_FILESIZE:
-			f->R.rax = filesize (f->R.rdi);
-		case SYS_READ:
-			f->R.rax = read (f->R.rdi, f->R.rsi, f->R.rdx);
-			break;
-		case SYS_WRITE:
-			f->R.rax = write (f->R.rdi, f->R.rsi, f->R.rdx);
-			break;
-		case SYS_SEEK:
-			f->R.rax = seek (f->R.rdi, f->R.rsi);
-			break;
-		case SYS_TELL:
-			f->R.rax = tell (f->R.rdi);
-			break;
+		// case SYS_FILESIZE:
+		// 	f->R.rax = filesize (f->R.rdi);
+		// case SYS_READ:
+		// 	f->R.rax = read (f->R.rdi, f->R.rsi, f->R.rdx);
+		// 	break;
+		// case SYS_WRITE:
+		// 	f->R.rax = write (f->R.rdi, f->R.rsi, f->R.rdx);
+		// 	break;
+		// case SYS_SEEK:
+		// 	f->R.rax = seek (f->R.rdi, f->R.rsi);
+		// 	break;
+		// case SYS_TELL:
+		// 	f->R.rax = tell (f->R.rdi);
+		//  break;
 		default:
 			break;
 	}
@@ -183,6 +188,32 @@ int
 wait (int pid) {
 	return process_wait (pid);
 }
+
+/* File Descriptor */
+int
+open (const char *file) {
+	check_address (file);
+
+	lock_acquire (&filesys_lock);
+
+	struct file *file_obj = filesys_open (file);
+
+	if (file_obj == NULL) {
+		return -1;
+	}
+
+	int fd = process_get_file (file_obj);
+
+	if (fd == -1) {
+		process_close_file (file_obj);
+	}
+
+	lock_acquire (&filesys_lock);
+
+	return fd;
+}
+
+
 
 /* File Descriptor*/
 void
