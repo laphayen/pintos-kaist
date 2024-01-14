@@ -237,6 +237,25 @@ read (int fd, void *buffer, unsigned size) {
 
 }
 
+/* File Descriptor */
+int
+filesize (int fd) {
+	check_address (fd);
+	
+	struct file *file = thread_current ()->fd_table[fd];
+
+	lock_acquire (&filesys_lock);
+
+	if (file) {
+		lock_release (&filesys_lock);
+		return file_length (file);
+	}
+
+	lock_release (&filesys_lock);
+
+	return -1;
+}
+
 /* File Descriptor*/
 void
 process_add_file (struct file *f) {
