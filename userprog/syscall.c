@@ -328,7 +328,7 @@ close (int fd) {
 		return;
 	}
 	
-	remove_file (fd);
+	process_close_file (fd);
 }
 
 /* File Descriptor */
