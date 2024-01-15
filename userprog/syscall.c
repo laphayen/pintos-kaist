@@ -40,6 +40,9 @@ struct lock filesys_lock;
 int open (const char *file);
 int read (int fd, void *buffer, unsigned size);
 int write (int fd, void *buffer, unsigned size);
+void seek (int fd, unsigned position);
+unsigned tell (int fd);
+void close (int fd);
 
 
 /* System call.
@@ -301,6 +304,47 @@ int write (int fd, void *buffer, unsigned size) {
 
 	return -1;
 }
+
+/* File Descriptor */
+void
+seek (int fd, unsigned position) {
+	struct file *file = process_get_file (fd);
+
+	if (fd < 2) {
+		return;
+	}
+
+	if (file) {
+		file_seek (file, position);
+	}
+}
+
+/* File Descriptor */
+void
+close (int fd) {
+	struct file *file = process_get_file (fd);
+	
+	if (file == NULL) {
+		return;
+	}
+	
+	remove_file (fd);
+}
+
+/* File Descriptor */
+unsigned
+tell (int fd) {
+	struct file *file = process_get_file (fd);
+
+	if (fd < 2) {
+		return;
+	}
+
+	if (file) {
+		return file_tell (file);
+	}
+}
+
 
 
 
