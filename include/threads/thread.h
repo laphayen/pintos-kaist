@@ -140,6 +140,8 @@ struct thread {
 	int stdout_count;
 	struct file *running;
 
+	struct semaphore fork_sema;
+
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */
