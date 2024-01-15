@@ -39,6 +39,7 @@ struct lock filesys_lock;
 /* File Descriptor */
 int open (const char *file);
 int read (int fd, void *buffer, unsigned size);
+int write (int fd, void *buffer, unsigned size);
 
 
 /* System call.
@@ -101,12 +102,12 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 		// case SYS_FILESIZE:
 		// 	f->R.rax = filesize (f->R.rdi);
-		// case SYS_READ:
-		// 	f->R.rax = read (f->R.rdi, f->R.rsi, f->R.rdx);
-		// 	break;
-		// case SYS_WRITE:
-		// 	f->R.rax = write (f->R.rdi, f->R.rsi, f->R.rdx);
-		// 	break;
+		case SYS_READ:
+			f->R.rax = read (f->R.rdi, f->R.rsi, f->R.rdx);
+			break;
+		case SYS_WRITE:
+			f->R.rax = write (f->R.rdi, f->R.rsi, f->R.rdx);
+			break;
 		// case SYS_SEEK:
 		// 	f->R.rax = seek (f->R.rdi, f->R.rsi);
 		// 	break;
@@ -221,28 +222,14 @@ open (const char *file) {
 
 /* File Descriptor */
 int
-read (int fd, void *buffer, unsigned size) {
-	check_address (buffer);
-
-	if (fd == 1) {
-		return -1;
-	}
-
-	lock_acquire (&filesys_lock);
-
-	struct file *file_obj = process_get_file (fd);
-	unsigned char *buf = buffer;
-	
-	lock_release (&filesys_lock);
-
-}
-
-/* File Descriptor */
-int
 filesize (int fd) {
 	check_address (fd);
 	
 	struct file *file = thread_current ()->fd_table[fd];
+
+	if (file == NULL) {
+		return -1;
+	}
 
 	lock_acquire (&filesys_lock);
 
@@ -255,6 +242,67 @@ filesize (int fd) {
 
 	return -1;
 }
+
+/* File Descriptor */
+int
+read (int fd, void *buffer, unsigned size) {
+	check_address (buffer);
+
+	struct file *file = process_get_file (fd);
+	int read_byte;
+	int fd_byte;
+
+	if (fd == 1) {
+		return -1;
+	}
+
+	if (fd == 0) {
+		lock_acquire (&filesys_lock);
+		fd_byte = input_getc ();
+		lock_release (&filesys_lock);
+		return fd_byte;
+	}
+
+	if (file) {
+		lock_acquire (&filesys_lock);
+		int read_byte = file_read (file, buffer, size);
+		lock_release (&filesys_lock);
+		return read_byte;
+	}
+
+	return -1;
+}
+
+/* File Descriptor */
+int write (int fd, void *buffer, unsigned size) {
+	check_address (buffer);
+
+	struct file *fdt = thread_current ()->fd_table[fd];
+	struct file *file_obj = process_get_file (fd);
+	int write_byte;
+
+	if (file_obj == NULL) {
+		return -1;
+	}
+
+	if (file_obj == 1) {
+		lock_acquire (&filesys_lock);
+		putbuf (buffer, size);
+		lock_release (&filesys_lock);
+		return size;
+	}
+
+	if (fdt) {
+		lock_acquire (&filesys_lock);
+		write_byte = file_write (fdt, buffer, size);
+		lock_release (&filesys_lock);
+		return write_byte;
+	}
+
+	return -1;
+}
+
+
 
 /* File Descriptor*/
 void
