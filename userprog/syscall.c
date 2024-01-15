@@ -107,20 +107,20 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_OPEN:
 			f->R.rax = open (f->R.rdi);
 			break;
-		// case SYS_FILESIZE:
-		// 	f->R.rax = filesize (f->R.rdi);
+		case SYS_FILESIZE:
+			f->R.rax = filesize (f->R.rdi);
 		case SYS_READ:
 			f->R.rax = read (f->R.rdi, f->R.rsi, f->R.rdx);
 			break;
 		case SYS_WRITE:
 			f->R.rax = write (f->R.rdi, f->R.rsi, f->R.rdx);
 			break;
-		// case SYS_SEEK:
-		// 	f->R.rax = seek (f->R.rdi, f->R.rsi);
-		// 	break;
-		// case SYS_TELL:
-		// 	f->R.rax = tell (f->R.rdi);
-		//  break;
+		case SYS_SEEK:
+			f->R.rax = seek (f->R.rdi, f->R.rsi);
+			break;
+		case SYS_TELL:
+			f->R.rax = tell (f->R.rdi);
+		 break;
 		default:
 			break;
 	}
