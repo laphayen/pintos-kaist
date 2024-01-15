@@ -88,7 +88,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			exit (f->R.rdi);
 			break;
 		case SYS_FORK:
-			f->R.rax = fork (f->R.rdi, f);
+			fork (f->R.rdi, f);
 			break;
 		case SYS_EXEC:
 			if (exec (f->R.rdi) == -1) {
@@ -113,7 +113,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			f->R.rax = read (f->R.rdi, f->R.rsi, f->R.rdx);
 			break;
 		case SYS_WRITE:
-			f->R.rax = write (f->R.rdi, f->R.rsi, f->R.rdx);
+			f->R.rax = write(f->R.rdi, f->R.rsi, f->R.rdx);
 			break;
 		case SYS_SEEK:
 			seek (f->R.rdi, f->R.rsi);
@@ -122,6 +122,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			f->R.rax = tell (f->R.rdi);
 		 break;
 		default:
+			thread_exit ();
 			break;
 	}
 }
@@ -260,6 +261,7 @@ filesize (int fd) {
 int
 read (int fd, void *buffer, unsigned size) {
 	check_address (buffer);
+	check_address (buffer + size - 1);
 
 	struct file *file = process_get_file (fd);
 	int read_byte;
@@ -289,30 +291,33 @@ read (int fd, void *buffer, unsigned size) {
 /* File Descriptor */
 int write (int fd, void *buffer, unsigned size) {
 	check_address (buffer);
+	struct file *file_obj = process_get_file (fd);
+	int write_count;
 
-	struct file *file = process_get_file (fd);
-	int write_byte;
-
+	lock_acquire (&filesys_lock);
 	if (fd == 0) {
+		putbuf (buffer, size);
+		write_count = size;
+	}	
+	
+	else if (fd == 1) {
+		lock_release (&filesys_lock);
 		return -1;
 	}
 
-
-	if (fd == 1) {
-		lock_acquire (&filesys_lock);
-		putbuf (buffer, size);
+	else if (fd >= 2) {
+		
+		if (file_obj == NULL) {
 		lock_release (&filesys_lock);
-		return size;
+		exit (-1);
+		}
+
+		write_count = file_write (file_obj, buffer, size);
+		
 	}
 
-	if (file) {
-		lock_acquire (&filesys_lock);
-		write_byte = file_write (file, buffer, size);
-		lock_release (&filesys_lock);
-		return write_byte;
-	}
-
-	return -1;
+	lock_release (&filesys_lock);
+	return write_count;
 }
 
 /* File Descriptor */
@@ -360,7 +365,7 @@ tell (int fd) {
 
 /* File Descriptor*/
 int
-process_add_file (struct file *f) {
+process_add_file (struct file *file) {
 	struct thread *curr = thread_current ();
 	struct file **fdt = curr->fd_table;
 
@@ -372,7 +377,7 @@ process_add_file (struct file *f) {
 		return -1;
 	}
 
-	fdt[curr->fd_idx] = f;
+	fdt[curr->fd_idx] = file;
 	
 	return curr->fd_idx;
 }
