@@ -193,23 +193,25 @@ __do_fork (void *aux) {
 	 * TODO:       the resources of parent.*/
 	
 	/* File Descriptor */
-	for (int i = 0; i < FDTABLE_MAX; i++) {
+
+	current->fd_table[0] = parent->fd_table[0];
+	current->fd_table[1] = parent->fd_table[1];
+
+	for (int i = 2; i < FDTABLE_MAX; i++) {
 		struct file *file = parent->fd_table[i];
 
 		if (file == NULL) {
 			continue;
 		}
 
-		if (file > 2) {
-			file = file_duplicate (file);
-		}
-
-		current->fd_table[i] = file;
+		current->fd_table[i] = file_duplicate(file);
 	}
 
 	current->fd_idx = parent->fd_idx;
 
 	sema_up (&current->wait_sema);
+
+	if_.R.rax = 0;
 
 	process_init ();
 
@@ -328,18 +330,16 @@ process_exit (void) {
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
 	/* File Descriptor */
-	palloc_free_multiple (curr->fd_table, FDT_PAGES);
-
-	file_close (curr->running);
-
 	for (int i = 0; i < FDTABLE_MAX; i++) {
 		close(i);
 	}
-
-	sema_up (&curr->wait_sema);
-	sema_down (&curr->free_sema);
+	palloc_free_multiple (curr->fd_table, FDT_PAGES);
+	file_close (curr->running);
 
 	process_cleanup ();
+
+	sema_up (&curr->wait_sema);
+	sema_down (&curr->free_sema);	
 }
 
 /* Argument Passing */
