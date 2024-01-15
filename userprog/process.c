@@ -84,8 +84,26 @@ initd (void *f_name) {
 tid_t
 process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	/* Clone current thread to new thread.*/
-	return thread_create (name,
-			PRI_DEFAULT, __do_fork, thread_current ());
+	/* File Descriptor */
+	struct thread *curr = thread_current ();
+
+	memcpy (&curr->parent_if, if_, sizeof (struct intr_frame));
+
+	tid_t tid = thread_create (name, PRI_DEFAULT, __do_fork, curr);
+
+	if (tid == TID_ERROR) {
+		return TID_ERROR;
+	}
+
+	struct thread *child = get_child_process (tid);
+
+	sema_down (&child->fork_sema);
+
+	if (child->exit_status == -1) {
+		return TID_ERROR;
+	}
+
+	return tid;
 }
 
 #ifndef VM
@@ -204,7 +222,7 @@ process_exec (void *f_name) {
 	/* Argument Passing */
 	/* If load failed, quit. */
 	if (!success) {
-		// palloc_free_page (file_name);
+		palloc_free_page (file_name);
 		return -1;
 	}
 
@@ -271,28 +289,18 @@ process_exit (void) {
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
 	/* File Descriptor */
-	struct file **fdt = curr->fd_table;
+	palloc_free_multiple (curr->fd_table, FDT_PAGES);
 
-	int count = 2;
+	file_close (curr->running);
 
-	while (count < 128) {
-		if (fdt[count]) {
-			file_close (fdt[count]);
-			fdt[count] = NULL;
-		}
-		count++;
+	for (int i = 0; i < FDTABLE_MAX; i++) {
+		close(i);
 	}
-
-	palloc_free_page (fdt);
-
-	if (curr->running) {
-		file_close (curr->running);
-	}
-
-	process_cleanup ();
 
 	sema_up (&curr->wait_sema);
 	sema_down (&curr->free_sema);
+
+	process_cleanup ();
 }
 
 /* Argument Passing */
