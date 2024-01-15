@@ -43,6 +43,7 @@ int write (int fd, void *buffer, unsigned size);
 void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
+tid_t fork (const char *thread_name, struct intr_frame *f);
 
 
 /* System call.
@@ -85,6 +86,9 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 		case SYS_EXIT:
 			exit (f->R.rdi);
+			break;
+		case SYS_FORK:
+			f->R.rax = fork (f->R.rdi, f);
 			break;
 		case SYS_EXEC:
 			if (exec (f->R.rdi) == -1) {
@@ -151,6 +155,12 @@ exit (int status) {
 
 	printf ("%s: exit(%d)\n", thread_name (), status);
 	thread_exit ();
+}
+
+/* File Descriptor */
+tid_t
+fork (const char *thread_name, struct intr_frame *f) {
+
 }
 
 /* System Call */
