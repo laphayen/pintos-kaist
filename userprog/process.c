@@ -56,7 +56,7 @@ process_create_initd (const char *file_name) {
 	strlcpy (fn_copy, file_name, PGSIZE);
 
 	/* Argument Passing */
-	token = strtok_r (file_name, " ", &save_ptr);
+	strtok_r (file_name, " ", &save_ptr);
 
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
@@ -169,7 +169,6 @@ __do_fork (void *aux) {
 
 	/* 1. Read the cpu context to local stack. */
 	memcpy (&if_, parent_if, sizeof (struct intr_frame));
-	if_.R.rax = 0;
 
 	/* 2. Duplicate PT */
 	current->pml4 = pml4_create();
@@ -193,6 +192,10 @@ __do_fork (void *aux) {
 	 * TODO:       the resources of parent.*/
 	
 	/* File Descriptor */
+
+	if (parent->fd_idx == FDTABLE_MAX) {
+		goto error;
+	}
 
 	current->fd_table[0] = parent->fd_table[0];
 	current->fd_table[1] = parent->fd_table[1];
@@ -221,7 +224,7 @@ __do_fork (void *aux) {
 error:
 	/* File Descriptor */
 	current->exit_status = TID_ERROR;
-	sema_up(&current->wait_sema);
+	sema_up (&current->fork_sema);
 	exit (TID_ERROR);
 }
 
@@ -299,11 +302,14 @@ process_wait (tid_t child_tid UNUSED) {
 	 * XXX:       implementing the process_wait. */
 
 	/* Argument Passing */
-	/* for (int i = 0; i < 1000000000; i++) {
+	/* 
+	for (int i = 0; i < 1000000000; i++) {
 	}
-	return -1; */
-	
+	return -1; 
+	*/
+
 	/* Hierarchical Process Structure */
+	// error
 	struct thread *child =  get_child_process (child_tid);
 
 	if (child == NULL) {
@@ -313,7 +319,7 @@ process_wait (tid_t child_tid UNUSED) {
 	sema_down (&child->wait_sema);
 
 	int exit_status = child->exit_status;
-	remove_child_process (child);
+	list_remove (&child->child_elem);
 
 	sema_up (&child->free_sema);
 
@@ -330,16 +336,17 @@ process_exit (void) {
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
 	/* File Descriptor */
+	// Error
 	for (int i = 0; i < FDTABLE_MAX; i++) {
-		close(i);
-	}
-	palloc_free_multiple (curr->fd_table, FDT_PAGES);
-	file_close (curr->running);
+        close(i);
+    }
+    palloc_free_multiple (curr->fd_table, FDT_PAGES);
+    file_close (curr->running);
 
-	process_cleanup ();
+    sema_up (&curr->wait_sema);
+    sema_down (&curr->free_sema);
 
-	sema_up (&curr->wait_sema);
-	sema_down (&curr->free_sema);	
+    process_cleanup ();
 }
 
 /* Argument Passing */
