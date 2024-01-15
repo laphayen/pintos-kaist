@@ -30,7 +30,7 @@ int wait (int pid);
 
 /* File Descriptor */
 struct file *process_get_file (int fd);
-void process_add_file (struct file *f);
+int process_add_file (struct file *f);
 void process_close_file (int fd);
 
 /* File Descriptor */
@@ -209,10 +209,10 @@ open (const char *file) {
 		return -1;
 	}
 
-	int fd = process_get_file (file_obj);
+	int fd = process_add_file (file_obj);
 
 	if (fd == -1) {
-		process_close_file (file_obj);
+		file_close (file_obj);
 	}
 
 	lock_acquire (&filesys_lock);
@@ -225,7 +225,7 @@ int
 filesize (int fd) {
 	check_address (fd);
 	
-	struct file *file = thread_current ()->fd_table[fd];
+	struct file *file = process_get_file (fd);
 
 	if (file == NULL) {
 		return -1;
@@ -277,24 +277,24 @@ read (int fd, void *buffer, unsigned size) {
 int write (int fd, void *buffer, unsigned size) {
 	check_address (buffer);
 
-	struct file *fdt = thread_current ()->fd_table[fd];
-	struct file *file_obj = process_get_file (fd);
+	struct file *file = process_get_file (fd);
 	int write_byte;
 
-	if (file_obj == NULL) {
+	if (fd == 0) {
 		return -1;
 	}
 
-	if (file_obj == 1) {
+
+	if (fd == 1) {
 		lock_acquire (&filesys_lock);
 		putbuf (buffer, size);
 		lock_release (&filesys_lock);
 		return size;
 	}
 
-	if (fdt) {
+	if (file) {
 		lock_acquire (&filesys_lock);
-		write_byte = file_write (fdt, buffer, size);
+		write_byte = file_write (file, buffer, size);
 		lock_release (&filesys_lock);
 		return write_byte;
 	}
@@ -305,7 +305,7 @@ int write (int fd, void *buffer, unsigned size) {
 
 
 /* File Descriptor*/
-void
+int
 process_add_file (struct file *f) {
 	struct thread *curr = thread_current ();
 	struct file **fdt = curr->fd_table;
