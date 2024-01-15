@@ -191,6 +191,8 @@ __do_fork (void *aux) {
 	 * TODO:       in include/filesys/file.h. Note that parent should not return
 	 * TODO:       from the fork() until this function successfully duplicates
 	 * TODO:       the resources of parent.*/
+	
+	/* File Descriptor */
 	for (int i = 0; i < FDTABLE_MAX; i++) {
 		struct file *file = parent->fd_table[i];
 
@@ -215,8 +217,10 @@ __do_fork (void *aux) {
 	if (succ)
 		do_iret (&if_);
 error:
+	/* File Descriptor */
+	current->exit_status = TID_ERROR;
 	sema_up(&current->wait_sema);
-	thread_exit ();
+	exit (TID_ERROR);
 }
 
 /* Switch the current execution context to the f_name.
@@ -270,7 +274,7 @@ process_exec (void *f_name) {
 	// hex_dump (_if.rsp, _if.rsp, USER_STACK - (uint64_t)_if.rsp, true);
 
 	/* Argument Passing */
-	palloc_free_page (file_name);
+	// palloc_free_page (file_name);
 
 	/* Start switched process. */
 	do_iret (&_if);
@@ -529,6 +533,9 @@ load (const char *file_name, struct intr_frame *if_) {
 		printf ("load: %s: open failed\n", file_name);
 		goto done;
 	}
+
+	/* File Descriptor */
+	t->running = file;
 
 	/* Read and verify executable header. */
 	if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
