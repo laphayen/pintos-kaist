@@ -109,6 +109,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 		case SYS_FILESIZE:
 			f->R.rax = filesize (f->R.rdi);
+			break;
 		case SYS_READ:
 			f->R.rax = read (f->R.rdi, f->R.rsi, f->R.rdx);
 			break;
@@ -118,11 +119,11 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_SEEK:
 			seek (f->R.rdi, f->R.rsi);
 			break;
-		case SYS_TELL:
-			f->R.rax = tell (f->R.rdi);
-			break;
 		case SYS_CLOSE:
 			close (f->R.rdi);
+			break;
+		case SYS_TELL:
+			f->R.rax = tell (f->R.rdi);
 			break;
 		default:
 			exit (-1);
@@ -218,7 +219,7 @@ int
 open (const char *file) {
 	check_address (file);
 
-	lock_acquire (&filesys_lock);
+	// lock_acquire (&filesys_lock);
 
 	struct file *file_obj = filesys_open (file);
 
@@ -232,7 +233,7 @@ open (const char *file) {
 		file_close (file_obj);
 	}
 
-	lock_acquire (&filesys_lock);
+	// lock_release (&filesys_lock);
 
 	return fd;
 }
@@ -248,14 +249,14 @@ filesize (int fd) {
 		return -1;
 	}
 
-	lock_acquire (&filesys_lock);
+	// lock_acquire (&filesys_lock);
 
 	if (file) {
 		lock_release (&filesys_lock);
 		return file_length (file);
 	}
 
-	lock_release (&filesys_lock);
+	// lock_release (&filesys_lock);
 
 	return -1;
 }
@@ -283,7 +284,7 @@ read (int fd, void *buffer, unsigned size) {
 
 	if (file) {
 		lock_acquire (&filesys_lock);
-		int read_byte = file_read (file, buffer, size);
+		read_byte = file_read (file, buffer, size);
 		lock_release (&filesys_lock);
 		return read_byte;
 	}
@@ -316,7 +317,6 @@ int write (int fd, void *buffer, unsigned size) {
 		}
 
 		write_count = file_write (file_obj, buffer, size);
-		
 	}
 
 	lock_release (&filesys_lock);
