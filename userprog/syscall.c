@@ -88,7 +88,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			exit (f->R.rdi);
 			break;
 		case SYS_FORK:
-			fork (f->R.rdi, f);
+			f->R.rax = fork (f->R.rdi, f);
 			break;
 		case SYS_EXEC:
 			if (exec (f->R.rdi) == -1) {
@@ -96,7 +96,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			}
 			break;
 		case SYS_WAIT:
-			f->R.rax = wait (f->R.rdi);
+			f->R.rax = process_wait (f->R.rdi);
 			break;
 		case SYS_CREATE:
 			f->R.rax = create (f->R.rdi, f->R.rsi);
@@ -120,9 +120,12 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 		case SYS_TELL:
 			f->R.rax = tell (f->R.rdi);
-		 break;
+			break;
+		case SYS_CLOSE:
+			close (f->R.rdi);
+			break;
 		default:
-			thread_exit ();
+			exit (-1);
 			break;
 	}
 }
