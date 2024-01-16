@@ -341,12 +341,11 @@ process_exit (void) {
         close(i);
     }
     palloc_free_multiple (curr->fd_table, FDT_PAGES);
-    file_close (curr->running);
 
+	process_cleanup ();
+	
     sema_up (&curr->wait_sema);
     sema_down (&curr->free_sema);
-
-    process_cleanup ();
 }
 
 /* Argument Passing */
@@ -370,19 +369,20 @@ argument_stack (char **parse, int count, void **rsp) {
 
 	for (int i = 0; i < padding; i++) {
 		(*rsp)--;
-		**(uint8_t **)rsp = 0;
+		**(uint8_t **)rsp = (uint8_t)0;
 	}
 
-	(*rsp) -= 8;
-	**(char ***)rsp = 0;
+	size_t ptr_size =  sizeof(char *);
+	(*rsp) -= ptr_size;
+	**(char ***)rsp = (char *)0;
 
 	for (int i = count - 1; i > -1; i--) {
-		(*rsp) -= 8;
+		(*rsp) -= ptr_size;
 		**(char ***)rsp = parse[i];
 	}
 
-	(*rsp) -= 8;
-	**(void ***)rsp = 0;
+	(*rsp) -= ptr_size;
+	**(void ***)rsp = (void *)0;
 }
 
 /* Hierarchical Process Structure */
@@ -540,9 +540,6 @@ load (const char *file_name, struct intr_frame *if_) {
 		printf ("load: %s: open failed\n", file_name);
 		goto done;
 	}
-
-	/* File Descriptor */
-	t->running = file;
 
 	/* Read and verify executable header. */
 	if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
