@@ -279,7 +279,7 @@ process_exec (void *f_name) {
 	// hex_dump (_if.rsp, _if.rsp, USER_STACK - (uint64_t)_if.rsp, true);
 
 	/* Argument Passing */
-	// palloc_free_page (file_name);
+	palloc_free_page (file_name);
 
 	/* Start switched process. */
 	do_iret (&_if);
