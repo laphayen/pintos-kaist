@@ -212,10 +212,10 @@ __do_fork (void *aux) {
 
 	current->fd_idx = parent->fd_idx;
 
-	sema_up (&current->wait_sema);
+	sema_up (&current->fork_sema);
 
 	if_.R.rax = 0;
-
+	
 	process_init ();
 
 	/* Finally, switch to the newly created process. */
@@ -279,7 +279,7 @@ process_exec (void *f_name) {
 	// hex_dump (_if.rsp, _if.rsp, USER_STACK - (uint64_t)_if.rsp, true);
 
 	/* Argument Passing */
-	palloc_free_page (file_name);
+	// palloc_free_page (file_name);
 
 	/* Start switched process. */
 	do_iret (&_if);
