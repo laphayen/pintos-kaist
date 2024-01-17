@@ -29,7 +29,7 @@ bool create (const char *file, unsigned initial_size);
 bool remove (const char *file);
 
 /* Hierarchical Process Structure */
-int exec (const char *file);
+int exec (const char *file_name);
 int wait (int pid);
 
 /* File Descriptor */
@@ -49,6 +49,9 @@ unsigned tell (int fd);
 void close (int fd);
 tid_t fork (const char *thread_name, struct intr_frame *f);
 
+// 
+const int STDIN = 1;
+const int STDOUT = 2;
 
 /* System call.
  *
@@ -123,11 +126,11 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_SEEK:
 			seek (f->R.rdi, f->R.rsi);
 			break;
-		case SYS_CLOSE:
-			close (f->R.rdi);
-			break;
 		case SYS_TELL:
 			f->R.rax = tell (f->R.rdi);
+			break;
+		case SYS_CLOSE:
+			close (f->R.rdi);
 			break;
 		default:
 			exit (-1);
@@ -169,9 +172,7 @@ exit (int status) {
 /* File Descriptor */
 tid_t
 fork (const char *thread_name, struct intr_frame *f) {
-	struct thread *curr = thread_current ();
-
-	return process_fork (thread_name, &curr->parent_if);
+	return process_fork(thread_name, f);
 }
 
 /* System Call */
@@ -193,25 +194,24 @@ remove (const char *file) {
 /* Hierarchical Process Structure */
 /* A system call to create a child process and execute a program. */
 int
-exec (const char *file) {
-	check_address (file);
-	
-	int size = strlen (file) + 1;
-	char *file_copy = palloc_get_page (PAL_ZERO);
+exec (const char *file_name) {
+	check_address (file_name);
 
-	if (file_copy == NULL) {
-		exit (-1);
+    char *fn_copy = palloc_get_page (PAL_ZERO);
+
+    if (fn_copy == NULL) {
+        exit(-1);
+    
 	}
+    strlcpy (fn_copy, file_name, strlen (file_name) + 1);
 
-	strlcpy (file_copy, file, size);
+    if (process_exec (fn_copy) == -1) {
+        return -1;
+    }
 
-	if (process_exec (file_copy) == -1) {
-		return -1;
-	}
+    NOT_REACHED();
 
-	NOT_REACHED ();
-	
-	return 0;
+    return 0;
 }
 
 /* Hierarchical Process Structure */
@@ -252,75 +252,54 @@ filesize (int fd) {
 	
 	struct file *file = process_get_file (fd);
 
-	if (file == NULL) {
-		return -1;
-	}
+	if (file == NULL)
+    {
+        return -1;
+    }
+    return file_length(file);
 
-	if (file) {
-		lock_release (&filesys_lock);
-		return file_length (file);
-	}
-
-	return -1;
 }
 
 /* File Descriptor */
 int
 read (int fd, void *buffer, unsigned size) {
 	check_address (buffer);
-	check_address (buffer + size - 1);
+    check_address (buffer + size - 1);
+    int read_count;
 
-	struct file *file = process_get_file (fd);
-	int read_byte;
-	int fd_byte;
+    struct file *file_obj = process_get_file (fd);
+    unsigned char *buf = buffer;
 
-	if (fd == 1) {
-		return -1;
-	}
+    if (file_obj == NULL) {
+        return -1;
+    }
 
-	if (fd == 0) {
-		lock_acquire (&filesys_lock);
-		fd_byte = input_getc ();
-		lock_release (&filesys_lock);
-		return fd_byte;
-	}
+    lock_acquire (&filesys_lock);
 
-	if (file) {
-		lock_acquire (&filesys_lock);
-		read_byte = file_read (file, buffer, size);
-		lock_release (&filesys_lock);
-		return read_byte;
-	}
+    read_count = file_read (file_obj, buffer, size);
 
-	return -1;
+    lock_release (&filesys_lock);
+
+    return read_count;
 }
 
 /* File Descriptor */
 int write (int fd, void *buffer, unsigned size) {
 	check_address (buffer);
-	struct file *file_obj = process_get_file (fd);
-	int write_count;
+    int read_count;
+    struct file *file_obj = process_get_file (fd);
 
-	if (fd == 0) {
-		putbuf (buffer, size);
-		write_count = size;
-	}	
-	
-	else if (fd == 1) {
-		return -1;
-	}
+    if (file_obj == NULL) {
+        return -1;
+    }
 
-	else if (fd >= 2) {
-		
-		if (file_obj == NULL) {
-		exit (-1);
-		}
-		lock_acquire (&filesys_lock);
-		write_count = file_write (file_obj, buffer, size);
-		lock_release (&filesys_lock);
-	}
+    lock_acquire (&filesys_lock);
 
-	return write_count;
+    read_count = file_write (file_obj, buffer, size);
+
+    lock_release (&filesys_lock);
+
+    return read_count;
 }
 
 /* File Descriptor */
@@ -332,9 +311,7 @@ seek (int fd, unsigned position) {
 		return;
 	}
 
-	if (file) {
-		file_seek (file, position);
-	}
+	file_seek (file, position);
 }
 
 /* File Descriptor */
@@ -346,22 +323,23 @@ tell (int fd) {
 		return;
 	}
 
-	if (file) {
-		return file_tell (file);
-	}
+	return file_tell (file);
 }
 
 /* File Descriptor */
 void
 close (int fd) {
+	if (fd < 2) {
+		return;
+	}
 	struct file *file = process_get_file (fd);
 	
 	if (file == NULL) {
 		return;
 	}
-	
+
+	file_close (file);	
 	process_close_file (fd);
-	file_close (file);
 }
 
 /* File Descriptor*/
