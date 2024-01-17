@@ -56,7 +56,7 @@ process_create_initd (const char *file_name) {
 	strlcpy (fn_copy, file_name, PGSIZE);
 
 	/* Argument Passing */
-	strtok_r (file_name, " ", &save_ptr);
+	file_name = strtok_r (file_name, " ", &save_ptr);
 
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
@@ -164,10 +164,11 @@ __do_fork (void *aux) {
 	struct thread *parent = (struct thread *) aux;
 	struct thread *current = thread_current ();
 	/* TODO: somehow pass the parent_if. (i.e. process_fork()'s if_) */
-	struct intr_frame *parent_if = &parent->parent_if;
+	struct intr_frame *parent_if;;
 	bool succ = true;
 
 	/* 1. Read the cpu context to local stack. */
+	parent_if = &parent->parent_if;
 	memcpy (&if_, parent_if, sizeof (struct intr_frame));
 
 	/* 2. Duplicate PT */
@@ -197,26 +198,28 @@ __do_fork (void *aux) {
 		goto error;
 	}
 
-	current->fd_table[0] = parent->fd_table[0];
-	current->fd_table[1] = parent->fd_table[1];
-
-	for (int i = 2; i < FDTABLE_MAX; i++) {
+	for (int i = 0; i < FDTABLE_MAX; i++) {
 		struct file *file = parent->fd_table[i];
 
 		if (file == NULL) {
 			continue;
 		}
 
-		current->fd_table[i] = file_duplicate(file);
+		struct file *new_file;
+
+		if (file > 2) {
+			new_file = file_duplicate (file);
+		}
+		else {
+			new_file = file;
+		}
+
+		current->fd_table[i] = new_file;
 	}
 
 	current->fd_idx = parent->fd_idx;
 
 	sema_up (&current->fork_sema);
-
-	if_.R.rax = 0;
-	
-	process_init ();
 
 	/* Finally, switch to the newly created process. */
 	if (succ)
@@ -254,6 +257,7 @@ process_exec (void *f_name) {
 
 	/* Argument Passing */
 	token = strtok_r (file_name, " ", &save_ptr);
+	
 	while (token != NULL) {
 		parse[count] = token;
 		token = strtok_r (NULL, " ", &save_ptr);
