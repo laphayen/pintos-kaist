@@ -11,6 +11,10 @@
 /* System Call */
 #include "threads/init.h"
 #include "filesys/filesys.h"
+#include "userprog/process.h"
+#include "threads/synch.h"
+#include "threads/vaddr.h"
+#include "threads/palloc.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -96,7 +100,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			}
 			break;
 		case SYS_WAIT:
-			f->R.rax = process_wait (f->R.rdi);
+			f->R.rax = wait (f->R.rdi);
 			break;
 		case SYS_CREATE:
 			f->R.rax = create (f->R.rdi, f->R.rsi);
@@ -165,7 +169,9 @@ exit (int status) {
 /* File Descriptor */
 tid_t
 fork (const char *thread_name, struct intr_frame *f) {
+	struct thread *curr = thread_current ();
 
+	return process_fork (thread_name, &curr->parent_if);
 }
 
 /* System Call */
@@ -190,21 +196,22 @@ int
 exec (const char *file) {
 	check_address (file);
 	
-	struct thread *curr = thread_current ();
-	tid_t pid = process_create_initd (file);
+	int size = strlen (file) + 1;
+	char *file_copy = palloc_get_page (PAL_ZERO);
 
-	struct thread *child = get_child_process (pid);
-
-	int result = process_wait (child);
-
-	list_push_back (&curr->child_list, &child->child_elem);
-
-	if (result == 1) {
-		return pid;
+	if (file_copy == NULL) {
+		exit (-1);
 	}
-	else {
+
+	strlcpy (file_copy, file, size);
+
+	if (process_exec (file_copy) == -1) {
 		return -1;
 	}
+
+	NOT_REACHED ();
+	
+	return 0;
 }
 
 /* Hierarchical Process Structure */
@@ -219,7 +226,7 @@ int
 open (const char *file) {
 	check_address (file);
 
-	// lock_acquire (&filesys_lock);
+	lock_acquire (&filesys_lock);
 
 	struct file *file_obj = filesys_open (file);
 
@@ -233,7 +240,7 @@ open (const char *file) {
 		file_close (file_obj);
 	}
 
-	// lock_release (&filesys_lock);
+	lock_release (&filesys_lock);
 
 	return fd;
 }
@@ -249,14 +256,10 @@ filesize (int fd) {
 		return -1;
 	}
 
-	// lock_acquire (&filesys_lock);
-
 	if (file) {
 		lock_release (&filesys_lock);
 		return file_length (file);
 	}
-
-	// lock_release (&filesys_lock);
 
 	return -1;
 }
@@ -298,28 +301,25 @@ int write (int fd, void *buffer, unsigned size) {
 	struct file *file_obj = process_get_file (fd);
 	int write_count;
 
-	lock_acquire (&filesys_lock);
 	if (fd == 0) {
 		putbuf (buffer, size);
 		write_count = size;
 	}	
 	
 	else if (fd == 1) {
-		lock_release (&filesys_lock);
 		return -1;
 	}
 
 	else if (fd >= 2) {
 		
 		if (file_obj == NULL) {
-		lock_release (&filesys_lock);
 		exit (-1);
 		}
-
+		lock_acquire (&filesys_lock);
 		write_count = file_write (file_obj, buffer, size);
+		lock_release (&filesys_lock);
 	}
 
-	lock_release (&filesys_lock);
 	return write_count;
 }
 
@@ -338,18 +338,6 @@ seek (int fd, unsigned position) {
 }
 
 /* File Descriptor */
-void
-close (int fd) {
-	struct file *file = process_get_file (fd);
-	
-	if (file == NULL) {
-		return;
-	}
-	
-	process_close_file (fd);
-}
-
-/* File Descriptor */
 unsigned
 tell (int fd) {
 	struct file *file = process_get_file (fd);
@@ -363,8 +351,18 @@ tell (int fd) {
 	}
 }
 
-
-
+/* File Descriptor */
+void
+close (int fd) {
+	struct file *file = process_get_file (fd);
+	
+	if (file == NULL) {
+		return;
+	}
+	
+	process_close_file (fd);
+	file_close (file);
+}
 
 /* File Descriptor*/
 int
