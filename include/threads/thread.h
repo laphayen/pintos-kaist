@@ -11,7 +11,7 @@
 
 /* File Descriptor */
 #define FDT_PAGES 3
-#define FDTABLE_MAX FDT_PAGES *(1 << 9)
+#define FDCOUNT_LIMIT FDT_PAGES *(1 << 9)
 
 #ifdef VM
 #include "vm/vm.h"
@@ -135,10 +135,8 @@ struct thread {
 	/* File Descriptor */
 	struct file **fd_table;
 	int fd_idx;
-	
-	int stdin_count;
-	int stdout_count;
 
+	/* File Descriptor */
 	struct semaphore fork_sema;
 
 #ifdef USERPROG
