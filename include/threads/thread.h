@@ -138,7 +138,6 @@ struct thread {
 	
 	int stdin_count;
 	int stdout_count;
-	struct file *running;
 
 	struct semaphore fork_sema;
 
