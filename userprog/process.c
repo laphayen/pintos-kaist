@@ -193,12 +193,11 @@ __do_fork (void *aux) {
 	 * TODO:       the resources of parent.*/
 	
 	/* File Descriptor */
-
-	if (parent->fd_idx == FDTABLE_MAX) {
+	if (parent->fd_idx == FDCOUNT_LIMIT) {
 		goto error;
 	}
 
-	for (int i = 0; i < FDTABLE_MAX; i++) {
+	for (int i = 0; i < FDCOUNT_LIMIT; i++) {
 		struct file *file = parent->fd_table[i];
 
 		if (file == NULL) {
@@ -220,8 +219,6 @@ __do_fork (void *aux) {
 	current->fd_idx = parent->fd_idx;
 
 	sema_up (&current->fork_sema);
-
-	// process_init();
 
 	/* Finally, switch to the newly created process. */
 	if (succ)
@@ -342,7 +339,7 @@ process_exit (void) {
 
 	/* File Descriptor */
 	// Error
-	for (int i = 0; i < FDTABLE_MAX; i++) {
+	for (int i = 0; i < FDCOUNT_LIMIT; i++) {
         close(i);
     }
     palloc_free_multiple (curr->fd_table, FDT_PAGES);
