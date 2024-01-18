@@ -196,21 +196,21 @@ int
 exec (const char *file_name) {
 	check_address (file_name);
 
-    char *fn_copy = palloc_get_page (PAL_ZERO);
+	char *fn_copy = palloc_get_page (PAL_ZERO);
 
-    if (fn_copy == NULL) {
-        exit(-1);
+	if (fn_copy == NULL) {
+		exit (-1);
 	}
 
-    strlcpy (fn_copy, file_name, strlen (file_name) + 1);
+	strlcpy (fn_copy, file_name, strlen (file_name) + 1);
 
-    if (process_exec (fn_copy) == -1) {
-        return -1;
-    }
+	if (process_wait (fn_copy) == -1) {
+		return -1;
+	}
 
-    NOT_REACHED();
+	NOT_REACHED ();
 
-    return 0;
+	return 0;
 }
 
 /* Hierarchical Process Structure */
@@ -257,8 +257,8 @@ filesize (int fd) {
 	{
 		return -1;
 	}
-	
-    return file_length (file);
+
+	return file_length (file);
 }
 
 /* File Descriptor */
