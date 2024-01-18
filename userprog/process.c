@@ -46,7 +46,6 @@ process_create_initd (const char *file_name) {
 	/* Argument Passing */
 	char *parse[64];
 	char *token;
-	char *save_ptr;
 	
 	/* Make a copy of FILE_NAME.
 	 * Otherwise there's a race between the caller and load(). */
@@ -56,7 +55,8 @@ process_create_initd (const char *file_name) {
 	strlcpy (fn_copy, file_name, PGSIZE);
 
 	/* Argument Passing */
-	file_name = strtok_r (file_name, " ", &save_ptr);
+	char *save_ptr;
+	strtok_r (file_name, " ", &save_ptr);
 
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
@@ -119,8 +119,8 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 
 	/* 1. TODO: If the parent_page is kernel page, then return immediately. */
 	/* File Descriptor */
-	if is_kernel_vaddr (va) {
-		return false;
+	if (is_kernel_vaddr (va)) {
+		return true;
 	}
 
 	/* 2. Resolve VA from the parent's page map level 4. */
@@ -164,12 +164,12 @@ __do_fork (void *aux) {
 	struct thread *parent = (struct thread *) aux;
 	struct thread *current = thread_current ();
 	/* TODO: somehow pass the parent_if. (i.e. process_fork()'s if_) */
-	struct intr_frame *parent_if;;
+	struct intr_frame *parent_if = &parent->parent_if;
 	bool succ = true;
 
 	/* 1. Read the cpu context to local stack. */
-	parent_if = &parent->parent_if;
 	memcpy (&if_, parent_if, sizeof (struct intr_frame));
+	if_.R.rax = 0;
 
 	/* 2. Duplicate PT */
 	current->pml4 = pml4_create();
@@ -221,6 +221,8 @@ __do_fork (void *aux) {
 
 	sema_up (&current->fork_sema);
 
+	// process_init();
+
 	/* Finally, switch to the newly created process. */
 	if (succ)
 		do_iret (&if_);
@@ -238,12 +240,6 @@ process_exec (void *f_name) {
 	char *file_name = f_name;
 	bool success;
 
-	/* Argument Passing */
-	char *parse[64];
-	char *token;
-	char *save_ptr;
-	int count = 0;
-
 	/* We cannot use the intr_frame in the thread structure.
 	 * This is because when current thread rescheduled,
 	 * it stores the execution information to the member. */
@@ -256,6 +252,10 @@ process_exec (void *f_name) {
 	process_cleanup ();
 
 	/* Argument Passing */
+	char *parse[64];
+	char *token;
+	char *save_ptr;
+	int count = 0;
 	token = strtok_r (file_name, " ", &save_ptr);
 	
 	while (token != NULL) {
@@ -270,20 +270,19 @@ process_exec (void *f_name) {
 	/* Argument Passing */
 	/* If load failed, quit. */
 	if (!success) {
-		palloc_free_page (file_name);
 		return -1;
 	}
 
 	/* Argument Passing */
 	argument_stack (parse, count, &_if.rsp);
 	_if.R.rdi = count;
-	_if.R.rsi = parse[0];
+    _if.R.rsi = (char *)_if.rsp + 8;
 
 	/* Argument Passing */
 	// hex_dump (_if.rsp, _if.rsp, USER_STACK - (uint64_t)_if.rsp, true);
 
 	/* Argument Passing */
-	// palloc_free_page (file_name);
+	palloc_free_page (file_name);
 
 	/* Start switched process. */
 	do_iret (&_if);
@@ -326,6 +325,8 @@ process_wait (tid_t child_tid UNUSED) {
 	list_remove (&child->child_elem);
 
 	sema_up (&child->free_sema);
+
+    // process_cleanup ();
 
 	return exit_status;
 }
