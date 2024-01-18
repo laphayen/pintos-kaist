@@ -228,6 +228,19 @@ thread_create (const char *name, int priority,
 	t->tf.cs = SEL_KCSEG;
 	t->tf.eflags = FLAG_IF;
 
+	/* File Descriptor */
+	t->fd_table = palloc_get_multiple (PAL_ZERO, FDT_PAGES);
+
+	/* File Descriptor */
+	if (t->fd_table == NULL) {
+		return TID_ERROR;
+	}
+
+	/* File Descriptor */
+	t->fd_table[0] = 1;
+	t->fd_table[1] = 2;
+	t->fd_idx = 2;
+
 	/* Hierarchical Process Structure */
 	t->child_elem;
 	list_push_back (&curr->child_list, &t->child_elem);
@@ -503,6 +516,9 @@ init_thread (struct thread *t, const char *name, int priority) {
 	list_init (&t->child_list);
 	sema_init (&t->wait_sema, 0);
 	sema_init (&t->free_sema, 0);
+
+	/* File Descriptor */
+	sema_init (&t->fork_sema, 0);
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should

@@ -46,7 +46,6 @@ process_create_initd (const char *file_name) {
 	/* Argument Passing */
 	char *parse[64];
 	char *token;
-	char *save_ptr;
 	
 	/* Make a copy of FILE_NAME.
 	 * Otherwise there's a race between the caller and load(). */
@@ -56,7 +55,8 @@ process_create_initd (const char *file_name) {
 	strlcpy (fn_copy, file_name, PGSIZE);
 
 	/* Argument Passing */
-	token = strtok_r (file_name, " ", &save_ptr);
+	char *save_ptr;
+	strtok_r (file_name, " ", &save_ptr);
 
 	/* Create a new thread to execute FILE_NAME. */
 	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
@@ -84,8 +84,26 @@ initd (void *f_name) {
 tid_t
 process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	/* Clone current thread to new thread.*/
-	return thread_create (name,
-			PRI_DEFAULT, __do_fork, thread_current ());
+	/* File Descriptor */
+	struct thread *curr = thread_current ();
+
+	memcpy (&curr->parent_if, if_, sizeof (struct intr_frame));
+
+	tid_t tid = thread_create (name, PRI_DEFAULT, __do_fork, curr);
+
+	if (tid == TID_ERROR) {
+		return TID_ERROR;
+	}
+
+	struct thread *child = get_child_process (tid);
+
+	sema_down (&child->fork_sema);
+
+	if (child->exit_status == -1) {
+		return TID_ERROR;
+	}
+
+	return tid;
 }
 
 #ifndef VM
@@ -100,21 +118,40 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 	bool writable;
 
 	/* 1. TODO: If the parent_page is kernel page, then return immediately. */
+	/* File Descriptor */
+	if (is_kernel_vaddr (va)) {
+		return true;
+	}
 
 	/* 2. Resolve VA from the parent's page map level 4. */
+	/* File Descriptor */
 	parent_page = pml4_get_page (parent->pml4, va);
+	if (parent_page == NULL) {
+		return false;
+	}
 
 	/* 3. TODO: Allocate new PAL_USER page for the child and set result to
 	 *    TODO: NEWPAGE. */
+	/* File Descriptor */
+	newpage = palloc_get_page (PAL_USER | PAL_ZERO);
+	if (newpage == NULL) {
+		return false;
+	}
+
 
 	/* 4. TODO: Duplicate parent's page to the new page and
 	 *    TODO: check whether parent's page is writable or not (set WRITABLE
 	 *    TODO: according to the result). */
+	/* File Descriptor */
+	memcpy (newpage, parent_page, PGSIZE);
+	writable = is_writable (pte);
 
 	/* 5. Add new page to child's page table at address VA with WRITABLE
 	 *    permission. */
 	if (!pml4_set_page (current->pml4, va, newpage, writable)) {
 		/* 6. TODO: if fail to insert page, do error handling. */
+		/* File Descriptor */
+		return false;
 	}
 	return true;
 }
@@ -130,11 +167,14 @@ __do_fork (void *aux) {
 	struct thread *parent = (struct thread *) aux;
 	struct thread *current = thread_current ();
 	/* TODO: somehow pass the parent_if. (i.e. process_fork()'s if_) */
-	struct intr_frame *parent_if;
+	/* File Descriptor */
+	struct intr_frame *parent_if = &parent->parent_if;
 	bool succ = true;
 
 	/* 1. Read the cpu context to local stack. */
 	memcpy (&if_, parent_if, sizeof (struct intr_frame));
+	/* File Descriptor */
+	if_.R.rax = 0;
 
 	/* 2. Duplicate PT */
 	current->pml4 = pml4_create();
@@ -156,14 +196,43 @@ __do_fork (void *aux) {
 	 * TODO:       in include/filesys/file.h. Note that parent should not return
 	 * TODO:       from the fork() until this function successfully duplicates
 	 * TODO:       the resources of parent.*/
+	
+	/* File Descriptor */
+	if (parent->fd_idx == FDCOUNT_LIMIT) {
+		goto error;
+	}
 
-	process_init ();
+	for (int i = 0; i < FDCOUNT_LIMIT; i++) {
+		struct file *file = parent->fd_table[i];
+
+		if (file == NULL) {
+			continue;
+		}
+
+		struct file *new_file;
+
+		if (file > 2) {
+			new_file = file_duplicate (file);
+		}
+		else {
+			new_file = file;
+		}
+
+		current->fd_table[i] = new_file;
+	}
+
+	current->fd_idx = parent->fd_idx;
+
+	sema_up (&current->fork_sema);
 
 	/* Finally, switch to the newly created process. */
 	if (succ)
 		do_iret (&if_);
 error:
-	thread_exit ();
+	/* File Descriptor */
+	current->exit_status = TID_ERROR;
+	sema_up (&current->fork_sema);
+	exit (TID_ERROR);
 }
 
 /* Switch the current execution context to the f_name.
@@ -172,12 +241,6 @@ int
 process_exec (void *f_name) {
 	char *file_name = f_name;
 	bool success;
-
-	/* Argument Passing */
-	char *parse[64];
-	char *token;
-	char *save_ptr;
-	int count = 0;
 
 	/* We cannot use the intr_frame in the thread structure.
 	 * This is because when current thread rescheduled,
@@ -191,7 +254,12 @@ process_exec (void *f_name) {
 	process_cleanup ();
 
 	/* Argument Passing */
+	char *parse[64];
+	char *token;
+	char *save_ptr;
+	int count = 0;
 	token = strtok_r (file_name, " ", &save_ptr);
+	
 	while (token != NULL) {
 		parse[count] = token;
 		token = strtok_r (NULL, " ", &save_ptr);
@@ -204,14 +272,13 @@ process_exec (void *f_name) {
 	/* Argument Passing */
 	/* If load failed, quit. */
 	if (!success) {
-		// palloc_free_page (file_name);
 		return -1;
 	}
 
 	/* Argument Passing */
 	argument_stack (parse, count, &_if.rsp);
 	_if.R.rdi = count;
-	_if.R.rsi = parse[0];
+	_if.R.rsi = (char *)_if.rsp + 8;
 
 	/* Argument Passing */
 	// hex_dump (_if.rsp, _if.rsp, USER_STACK - (uint64_t)_if.rsp, true);
@@ -240,10 +307,12 @@ process_wait (tid_t child_tid UNUSED) {
 	 * XXX:       implementing the process_wait. */
 
 	/* Argument Passing */
-	/* for (int i = 0; i < 1000000000; i++) {
+	/* 
+	for (int i = 0; i < 1000000000; i++) {
 	}
-	return -1; */
-	
+	return -1; 
+	*/
+
 	/* Hierarchical Process Structure */
 	struct thread *child =  get_child_process (child_tid);
 
@@ -254,7 +323,7 @@ process_wait (tid_t child_tid UNUSED) {
 	sema_down (&child->wait_sema);
 
 	int exit_status = child->exit_status;
-	remove_child_process (child);
+	list_remove (&child->child_elem);
 
 	sema_up (&child->free_sema);
 
@@ -270,7 +339,16 @@ process_exit (void) {
 	 * TODO: project2/process_termination.html).
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
+	/* File Descriptor */
+	for (int i = 0; i < FDCOUNT_LIMIT; i++) {
+		close(i);
+	}
+	palloc_free_multiple (curr->fd_table, FDT_PAGES);
+	
 	process_cleanup ();
+	
+	sema_up (&curr->wait_sema);
+	sema_down (&curr->free_sema);
 }
 
 /* Argument Passing */
@@ -294,19 +372,20 @@ argument_stack (char **parse, int count, void **rsp) {
 
 	for (int i = 0; i < padding; i++) {
 		(*rsp)--;
-		**(uint8_t **)rsp = 0;
+		**(uint8_t **)rsp = (uint8_t)0;
 	}
 
-	(*rsp) -= 8;
-	**(char ***)rsp = 0;
+	size_t ptr_size =  sizeof(char *);
+	(*rsp) -= ptr_size;
+	**(char ***)rsp = (char *)0;
 
 	for (int i = count - 1; i > -1; i--) {
-		(*rsp) -= 8;
+		(*rsp) -= ptr_size;
 		**(char ***)rsp = parse[i];
 	}
 
-	(*rsp) -= 8;
-	**(void ***)rsp = 0;
+	(*rsp) -= ptr_size;
+	**(void ***)rsp = (void *)0;
 }
 
 /* Hierarchical Process Structure */

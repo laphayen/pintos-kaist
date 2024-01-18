@@ -9,6 +9,10 @@
 /* Hierarchical Process Structure */
 #include "threads/synch.h"
 
+/* File Descriptor */
+#define FDT_PAGES 3
+#define FDCOUNT_LIMIT FDT_PAGES * (1 << 9)
+
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -127,6 +131,13 @@ struct thread {
 
 	struct semaphore wait_sema;
 	struct semaphore free_sema;
+
+	/* File Descriptor */
+	struct file **fd_table;
+	int fd_idx;
+
+	/* File Descriptor */
+	struct semaphore fork_sema;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
