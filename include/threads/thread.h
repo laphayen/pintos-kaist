@@ -11,7 +11,7 @@
 
 /* File Descriptor */
 #define FDT_PAGES 3
-#define FDCOUNT_LIMIT FDT_PAGES *(1 << 9)
+#define FDCOUNT_LIMIT FDT_PAGES * (1 << 9)
 
 #ifdef VM
 #include "vm/vm.h"
