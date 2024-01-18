@@ -226,7 +226,7 @@ int
 open (const char *file) {
 	check_address (file);
 
-	lock_acquire (&filesys_lock);
+	 lock_acquire (&filesys_lock);
 
 	struct file *file_obj = filesys_open (file);
 
@@ -286,20 +286,26 @@ read (int fd, void *buffer, unsigned size) {
 /* File Descriptor */
 int write (int fd, void *buffer, unsigned size) {
 	check_address (buffer);
-    int read_count;
-    struct file *file_obj = process_get_file (fd);
+    int write_count;
 
-    if (file_obj == NULL) {
-        return -1;
-    }
+	lock_acquire (&filesys_lock);
 
-    lock_acquire (&filesys_lock);
-
-    read_count = file_write (file_obj, buffer, size);
+	if (fd == 1) {
+		putbuf (buffer, size);
+		write_count = size;
+	}
+	else {
+		if (process_get_file (fd) != NULL) {
+			write_count = file_write (process_get_file (fd), buffer, size);
+		}
+		else {
+			write_count = -1;
+		}
+	}
 
     lock_release (&filesys_lock);
 
-    return read_count;
+    return write_count;
 }
 
 /* File Descriptor */
@@ -307,7 +313,7 @@ void
 seek (int fd, unsigned position) {
 	struct file *file = process_get_file (fd);
 
-	if (fd < 2) {
+	if (file <= 2) {
 		return;
 	}
 
@@ -329,16 +335,12 @@ tell (int fd) {
 /* File Descriptor */
 void
 close (int fd) {
-	if (fd < 2) {
-		return;
-	}
 	struct file *file = process_get_file (fd);
 	
 	if (file == NULL) {
 		return;
 	}
 
-	file_close (file);	
 	process_close_file (fd);
 }
 
