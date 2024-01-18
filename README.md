@@ -19,3 +19,4 @@ The manual is available at https://casys-kaist.github.io/pintos-kaist/.
 #### User Memory Access[https://codeomni.tistory.com/955]
 #### System Call[https://codeomni.tistory.com/957]
 #### Hierarchical Process Structure[https://codeomni.tistory.com/958]
+#### File Descriptor[https://codeomni.tistory.com/959]
