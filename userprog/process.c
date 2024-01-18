@@ -273,7 +273,7 @@ process_exec (void *f_name) {
 	/* Argument Passing */
 	argument_stack (parse, count, &_if.rsp);
 	_if.R.rdi = count;
-    _if.R.rsi = (char *)_if.rsp + 8;
+	_if.R.rsi = (char *)_if.rsp + 8;
 
 	/* Argument Passing */
 	// hex_dump (_if.rsp, _if.rsp, USER_STACK - (uint64_t)_if.rsp, true);
