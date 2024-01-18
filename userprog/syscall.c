@@ -200,8 +200,8 @@ exec (const char *file_name) {
 
     if (fn_copy == NULL) {
         exit(-1);
-    
 	}
+
     strlcpy (fn_copy, file_name, strlen (file_name) + 1);
 
     if (process_exec (fn_copy) == -1) {
@@ -254,11 +254,11 @@ filesize (int fd) {
 	struct file *file = process_get_file (fd);
 
 	if (file == NULL)
-    {
-        return -1;
-    }
+	{
+		return -1;
+	}
+	
     return file_length (file);
-
 }
 
 /* File Descriptor */
@@ -266,9 +266,9 @@ filesize (int fd) {
 int
 read (int fd, void *buffer, unsigned size) {
 	check_address (buffer);
-    int read_count;
-
-    struct file *file_obj = process_get_file (fd);
+	int read_count;
+	
+	struct file *file_obj = process_get_file (fd);
     
 	if (fd == 0) {
 		*(char *)buffer = input_getc ();
@@ -284,16 +284,18 @@ read (int fd, void *buffer, unsigned size) {
 			lock_release (&filesys_lock);
 		}
 	}
-
-    return read_count;
+	
+	return read_count;
 }
 
 /* File Descriptor */
 /* A system call for writing data to an open file. */
-int write (int fd, void *buffer, unsigned size) {
+int
+write (int fd, void *buffer, unsigned size) {
 	check_address (buffer);
+
 	struct file *file_obj = process_get_file (fd);
-    int write_count;
+	int write_count;
 
 	lock_acquire (&filesys_lock);
 
@@ -309,10 +311,10 @@ int write (int fd, void *buffer, unsigned size) {
 			write_count = -1;
 		}
 	}
-
-    lock_release (&filesys_lock);
-
-    return write_count;
+	
+	lock_release (&filesys_lock);
+	
+	return write_count;
 }
 
 /* File Descriptor */

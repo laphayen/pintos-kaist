@@ -132,6 +132,7 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 
 	/* 3. TODO: Allocate new PAL_USER page for the child and set result to
 	 *    TODO: NEWPAGE. */
+	/* File Descriptor */
 	newpage = palloc_get_page (PAL_USER | PAL_ZERO);
 	if (newpage == NULL) {
 		return false;
@@ -141,6 +142,7 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 	/* 4. TODO: Duplicate parent's page to the new page and
 	 *    TODO: check whether parent's page is writable or not (set WRITABLE
 	 *    TODO: according to the result). */
+	/* File Descriptor */
 	memcpy (newpage, parent_page, PGSIZE);
 	writable = is_writable (pte);
 
@@ -148,6 +150,7 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 	 *    permission. */
 	if (!pml4_set_page (current->pml4, va, newpage, writable)) {
 		/* 6. TODO: if fail to insert page, do error handling. */
+		/* File Descriptor */
 		return false;
 	}
 	return true;
@@ -164,11 +167,13 @@ __do_fork (void *aux) {
 	struct thread *parent = (struct thread *) aux;
 	struct thread *current = thread_current ();
 	/* TODO: somehow pass the parent_if. (i.e. process_fork()'s if_) */
+	/* File Descriptor */
 	struct intr_frame *parent_if = &parent->parent_if;
 	bool succ = true;
 
 	/* 1. Read the cpu context to local stack. */
 	memcpy (&if_, parent_if, sizeof (struct intr_frame));
+	/* File Descriptor */
 	if_.R.rax = 0;
 
 	/* 2. Duplicate PT */
@@ -309,7 +314,6 @@ process_wait (tid_t child_tid UNUSED) {
 	*/
 
 	/* Hierarchical Process Structure */
-	// error
 	struct thread *child =  get_child_process (child_tid);
 
 	if (child == NULL) {
@@ -322,8 +326,6 @@ process_wait (tid_t child_tid UNUSED) {
 	list_remove (&child->child_elem);
 
 	sema_up (&child->free_sema);
-
-    // process_cleanup ();
 
 	return exit_status;
 }
@@ -338,16 +340,15 @@ process_exit (void) {
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
 	/* File Descriptor */
-	// Error
 	for (int i = 0; i < FDCOUNT_LIMIT; i++) {
-        close(i);
-    }
-    palloc_free_multiple (curr->fd_table, FDT_PAGES);
-
+		close(i);
+	}
+	palloc_free_multiple (curr->fd_table, FDT_PAGES);
+	
 	process_cleanup ();
 	
-    sema_up (&curr->wait_sema);
-    sema_down (&curr->free_sema);
+	sema_up (&curr->wait_sema);
+	sema_down (&curr->free_sema);
 }
 
 /* Argument Passing */
