@@ -253,8 +253,7 @@ filesize (int fd) {
 	
 	struct file *file = process_get_file (fd);
 
-	if (file == NULL)
-	{
+	if (file == NULL) {
 		return -1;
 	}
 
