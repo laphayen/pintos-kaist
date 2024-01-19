@@ -196,15 +196,16 @@ int
 exec (const char *file_name) {
 	check_address (file_name);
 
+	int size = strlen (file_name) + 1;
 	char *fn_copy = palloc_get_page (PAL_ZERO);
 
 	if (fn_copy == NULL) {
 		exit (-1);
 	}
 
-	strlcpy (fn_copy, file_name, strlen (file_name) + 1);
+	strlcpy (fn_copy, file_name, size);
 
-	if (process_wait (fn_copy) == -1) {
+	if (process_exec (fn_copy) == -1) {
 		return -1;
 	}
 
