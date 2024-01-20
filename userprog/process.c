@@ -18,6 +18,10 @@
 #include "threads/mmu.h"
 #include "threads/vaddr.h"
 #include "intrinsic.h"
+
+/* File Descriptor */
+#include "userprog/syscall.h"
+
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -343,9 +347,12 @@ process_exit (void) {
 	for (int i = 0; i < FDCOUNT_LIMIT; i++) {
 		close(i);
 	}
+
 	palloc_free_multiple (curr->fd_table, FDT_PAGES);
 	
-	file_close (curr->running);
+	if (curr->running) {
+		file_close (curr->running);
+	}
 
 	process_cleanup ();
 	
