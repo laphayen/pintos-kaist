@@ -1,4 +1,3 @@
-pass tests/threads/priority-donate-chain
 pass tests/userprog/args-none
 pass tests/userprog/args-single
 pass tests/userprog/args-multiple
@@ -29,11 +28,11 @@ FAIL tests/userprog/read-boundary
 FAIL tests/userprog/read-zero
 FAIL tests/userprog/read-stdout
 FAIL tests/userprog/read-bad-fd
-FAIL tests/userprog/write-normal
+pass tests/userprog/write-normal
 pass tests/userprog/write-bad-ptr
-FAIL tests/userprog/write-boundary
-FAIL tests/userprog/write-zero
-pass tests/userprog/write-stdin
+pass tests/userprog/write-boundary
+pass tests/userprog/write-zero
+FAIL tests/userprog/write-stdin
 FAIL tests/userprog/write-bad-fd
 pass tests/userprog/fork-once
 pass tests/userprog/fork-multiple
@@ -94,4 +93,4 @@ pass tests/threads/priority-preempt
 pass tests/threads/priority-sema
 pass tests/threads/priority-condvar
 pass tests/threads/priority-donate-chain
-39 of 95 tests failed.
+37 of 95 tests failed.
