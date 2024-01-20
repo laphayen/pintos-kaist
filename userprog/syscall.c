@@ -368,7 +368,7 @@ close (int fd) {
 
 	lock_acquire (&filesys_lock);
 	thread_current ()->fd_table[fd] = NULL;
-	process_close_file (fd);
+	file_close (file);
 	lock_release (&filesys_lock);
 }
 
