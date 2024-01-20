@@ -227,6 +227,12 @@ int
 open (const char *file) {
 	check_address (file);
 
+	int fd;
+
+	if (file == NULL) {
+		return -1;
+	}
+
 	lock_acquire (&filesys_lock);
 
 	struct file *file_obj = filesys_open (file);
@@ -236,12 +242,8 @@ open (const char *file) {
 		return -1;
 	}
 
-	int fd = process_add_file (file_obj);
-
-	if (fd == -1) {
-		file_close (file_obj);
-	}
-
+	fd = process_add_file (file_obj);
+	
 	lock_release (&filesys_lock);
 
 	return fd;
@@ -302,6 +304,10 @@ write (int fd, void *buffer, unsigned size) {
 
 	lock_acquire (&filesys_lock);
 
+	if (fd == 0) {
+		write_count = -1;
+	}
+
 	if (fd == 1) {
 		putbuf (buffer, size);
 		write_count = size;
@@ -330,7 +336,9 @@ seek (int fd, unsigned position) {
 		return;
 	}
 
+	lock_acquire (&filesys_lock);
 	file_seek (file, position);
+	lock_release (&filesys_lock);
 }
 
 /* File Descriptor */
@@ -343,7 +351,9 @@ tell (int fd) {
 		return;
 	}
 
+	lock_acquire (&filesys_lock);
 	return file_tell (file);
+	lock_release (&filesys_lock);
 }
 
 /* File Descriptor */
@@ -356,7 +366,10 @@ close (int fd) {
 		return;
 	}
 
+	lock_acquire (&filesys_lock);
+	thread_current ()->fd_table[fd] = NULL;
 	process_close_file (fd);
+	lock_release (&filesys_lock);
 }
 
 /* File Descriptor*/
@@ -401,6 +414,8 @@ process_close_file (int fd) {
 	if (fd >=0 && fd < FDCOUNT_LIMIT) {
 		return NULL;
 	}
+
+	file_close (curr->fd_table[fd]);
 
 	curr->fd_table[fd] = NULL;
 }
