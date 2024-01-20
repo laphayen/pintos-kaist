@@ -232,6 +232,7 @@ open (const char *file) {
 	struct file *file_obj = filesys_open (file);
 
 	if (file_obj == NULL) {
+		lock_release (&filesys_lock);
 		return -1;
 	}
 
@@ -267,6 +268,8 @@ int
 read (int fd, void *buffer, unsigned size) {
 	check_address (buffer);
 	int read_count;
+
+	lock_acquire (&filesys_lock);
 	
 	struct file *file_obj = process_get_file (fd);
     
@@ -279,11 +282,11 @@ read (int fd, void *buffer, unsigned size) {
 			return -1;
 		}
 		else {
-			lock_acquire (&filesys_lock);
 			read_count = file_read (file_obj, buffer, size);
-			lock_release (&filesys_lock);
 		}
 	}
+
+	lock_release (&filesys_lock);
 	
 	return read_count;
 }
