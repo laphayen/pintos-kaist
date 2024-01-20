@@ -302,28 +302,28 @@ write (int fd, void *buffer, unsigned size) {
 	struct file *file_obj = process_get_file (fd);
 	int write_count;
 
-	lock_acquire (&filesys_lock);
-
 	if (fd == 0) {
 		write_count = -1;
 	}
 
 	if (fd == 1) {
+		lock_acquire (&filesys_lock);
 		putbuf (buffer, size);
-		write_count = size;
+		lock_release (&filesys_lock);
+		return size;
 	}
-	else {
-		if (process_get_file (fd) != NULL) {
-			write_count = file_write (file_obj, buffer, size);
-		}
-		else {
-			write_count = -1;
-		}
+
+	struct file *file = thread_current ()->fd_table[fd];
+
+	if (file) {
+		lock_acquire (&filesys_lock);
+
+		write_count = file_write (file, buffer, size);
+
+		lock_release (&filesys_lock);
+
+		return write_count;
 	}
-	
-	lock_release (&filesys_lock);
-	
-	return write_count;
 }
 
 /* File Descriptor */
