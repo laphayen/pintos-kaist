@@ -18,6 +18,10 @@
 #include "threads/vaddr.h"
 #include "threads/palloc.h"
 
+/* Denying Write To Executable */
+const int STDIN = 1;
+const int STDOUT = 2;
+
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
 
@@ -271,24 +275,42 @@ read (int fd, void *buffer, unsigned size) {
 	check_address (buffer);
 	int read_count;
 
-	lock_acquire (&filesys_lock);
-	
+	struct thread *curr = thread_current ();
 	struct file *file_obj = process_get_file (fd);
-    
-	if (fd == 0) {
-		*(char *)buffer = input_getc ();
-		read_count = size;
+
+	if (file_obj == NULL) {
+		return -1;
 	}
-	else {
-		if (file_obj == NULL) {
-			return -1;
+    
+	if (file_obj == STDIN) {
+		if (curr->stdin_count == 0) {
+			NOT_REACHED ();
+			process_close_file (fd);
+			read_count = -1;
 		}
 		else {
-			read_count = file_read (file_obj, buffer, size);
+			int i;
+			unsigned char *buff = buffer;
+			for (i = 0; i < size; i++) {
+				char c = input_getc ();
+				*buff++ = c;
+				if (c == '\0') {
+					break;
+				}
+			}
+			read_count = i;
 		}
 	}
+	else if (file_obj == STDOUT) {
+		read_count = -1;
+	}
+	else {
+		lock_acquire (&filesys_lock);
 
-	lock_release (&filesys_lock);
+		read_count = file_read (file_obj, buffer, size);
+
+		lock_release (&filesys_lock);
+	}
 	
 	return read_count;
 }
