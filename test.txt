@@ -26,7 +26,7 @@ FAIL tests/userprog/read-normal
 pass tests/userprog/read-bad-ptr
 FAIL tests/userprog/read-boundary
 FAIL tests/userprog/read-zero
-FAIL tests/userprog/read-stdout
+pass tests/userprog/read-stdout
 FAIL tests/userprog/read-bad-fd
 pass tests/userprog/write-normal
 pass tests/userprog/write-bad-ptr
@@ -93,4 +93,4 @@ pass tests/threads/priority-preempt
 pass tests/threads/priority-sema
 pass tests/threads/priority-condvar
 pass tests/threads/priority-donate-chain
-37 of 95 tests failed.
+36 of 95 tests failed.
