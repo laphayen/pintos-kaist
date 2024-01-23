@@ -274,11 +274,16 @@ int
 read (int fd, void *buffer, unsigned size) {
 	check_address (buffer);
 	int read_count;
+	unsigned char *buff = buffer;
 
 	struct thread *curr = thread_current ();
 	struct file *file_obj = process_get_file (fd);
 
 	if (file_obj == NULL) {
+		return -1;
+	}
+
+	if (file_obj == STDOUT) {
 		return -1;
 	}
     
@@ -289,26 +294,18 @@ read (int fd, void *buffer, unsigned size) {
 			read_count = -1;
 		}
 		else {
-			int i;
-			unsigned char *buff = buffer;
-			for (i = 0; i < size; i++) {
+			for (read_count = 0; read_count < size; read_count++) {
 				char c = input_getc ();
 				*buff++ = c;
 				if (c == '\0') {
 					break;
 				}
 			}
-			read_count = i;
 		}
-	}
-	else if (file_obj == STDOUT) {
-		read_count = -1;
 	}
 	else {
 		lock_acquire (&filesys_lock);
-
 		read_count = file_read (file_obj, buffer, size);
-
 		lock_release (&filesys_lock);
 	}
 	
