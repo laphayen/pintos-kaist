@@ -234,10 +234,6 @@ open (const char *file) {
 
 	int fd;
 
-	if (file == NULL) {
-		return -1;
-	}
-
 	lock_acquire (&filesys_lock);
 
 	struct file *file_obj = filesys_open (file);
