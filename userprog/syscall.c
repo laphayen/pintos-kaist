@@ -17,6 +17,7 @@
 #include "threads/synch.h"
 #include "threads/vaddr.h"
 #include "threads/palloc.h"
+#include "filesys/file.h"
 
 /* Denying Write To Executable */
 const int STDIN = 1;
@@ -105,7 +106,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			}
 			break;
 		case SYS_WAIT:
-			f->R.rax = wait (f->R.rdi);
+			f->R.rax = process_wait (f->R.rdi);
 			break;
 		case SYS_CREATE:
 			f->R.rax = create (f->R.rdi, f->R.rsi);
@@ -272,44 +273,32 @@ filesize (int fd) {
 /* A system call for reading data from an open file. */
 int
 read (int fd, void *buffer, unsigned size) {
-	check_address (buffer);
-	int read_count;
-	unsigned char *buff = buffer;
-
-	struct thread *curr = thread_current ();
-	struct file *file_obj = process_get_file (fd);
-
-	if (file_obj == NULL) {
-		return -1;
-	}
-
-	if (file_obj == STDOUT) {
-		return -1;
-	}
-    
-	if (file_obj == STDIN) {
-		if (curr->stdin_count == 0) {
-			NOT_REACHED ();
-			process_close_file (fd);
-			read_count = -1;
-		}
-		else {
-			for (read_count = 0; read_count < size; read_count++) {
-				char c = input_getc ();
-				*buff++ = c;
-				if (c == '\0') {
-					break;
-				}
-			}
-		}
-	}
-	else {
-		lock_acquire (&filesys_lock);
-		read_count = file_read (file_obj, buffer, size);
-		lock_release (&filesys_lock);
-	}
-	
-	return read_count;
+	check_address(buffer);
+    off_t read_byte;
+    uint8_t *read_buffer = buffer;
+    if (fd == 0) {
+        char key;
+        for (read_byte = 0; read_byte < size; read_byte++) {
+            key = input_getc();
+            *read_buffer++ = key;
+            if (key == '\0') {
+                break;
+            }
+        }
+    }
+    else if (fd == 1) {
+        return -1;
+    }
+    else {
+        struct file *read_file = process_get_file (fd);
+        if (read_file == NULL) {
+            return -1;
+        }
+        lock_acquire (&filesys_lock);
+        read_byte = file_read(read_file, buffer, size);
+        lock_release (&filesys_lock);
+    }
+    return read_byte;
 }
 
 /* File Descriptor */
