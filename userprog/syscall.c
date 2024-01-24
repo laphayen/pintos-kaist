@@ -279,7 +279,7 @@ read (int fd, void *buffer, unsigned size) {
     if (fd == 0) {
         char key;
         for (read_byte = 0; read_byte < size; read_byte++) {
-            key = input_getc();
+            key = input_getc ();
             *read_buffer++ = key;
             if (key == '\0') {
                 break;
@@ -311,25 +311,18 @@ write (int fd, void *buffer, unsigned size) {
 	int write_count;
 
 	if (fd == 0) {
-		write_count = -1;
+		return 0;
 	}
-
-	if (fd == 1) {
+	else if (fd == 1) {
 		lock_acquire (&filesys_lock);
 		putbuf (buffer, size);
 		lock_release (&filesys_lock);
 		return size;
 	}
-
-	struct file *file = thread_current ()->fd_table[fd];
-
-	if (file) {
+	else {
 		lock_acquire (&filesys_lock);
-
-		write_count = file_write (file, buffer, size);
-
+		write_count = file_write (file_obj, buffer, size);
 		lock_release (&filesys_lock);
-
 		return write_count;
 	}
 }
