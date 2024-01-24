@@ -103,9 +103,9 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 
 	sema_down (&child->fork_sema);
 
-	// if (child->exit_status == -1) {
-	// 	return TID_ERROR;
-	// }
+	if (child->exit_status == -1) {
+		return TID_ERROR;
+	}
 
 	return tid;
 }
@@ -350,14 +350,12 @@ process_exit (void) {
 
 	palloc_free_multiple (curr->fd_table, FDT_PAGES);
 	
-	if (curr->running) {
-		file_close (curr->running);
-	}
+	file_close (curr->running);
 
-	process_cleanup ();
-	
 	sema_up (&curr->wait_sema);
 	sema_down (&curr->free_sema);
+
+	process_cleanup ();
 }
 
 /* Argument Passing */
@@ -639,7 +637,6 @@ done:
 	// file_close (file);
 	return success;
 }
-
 
 /* Checks whether PHDR describes a valid, loadable segment in
  * FILE and returns true if so, false otherwise. */
