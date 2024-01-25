@@ -142,7 +142,6 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 		return false;
 	}
 
-
 	/* 4. TODO: Duplicate parent's page to the new page and
 	 *    TODO: check whether parent's page is writable or not (set WRITABLE
 	 *    TODO: according to the result). */
@@ -172,8 +171,9 @@ __do_fork (void *aux) {
 	struct thread *current = thread_current ();
 	/* TODO: somehow pass the parent_if. (i.e. process_fork()'s if_) */
 	/* File Descriptor */
-	struct intr_frame *parent_if = &parent->parent_if;
+	struct intr_frame *parent_if;
 	bool succ = true;
+	parent_if = &parent->parent_if;
 
 	/* 1. Read the cpu context to local stack. */
 	memcpy (&if_, parent_if, sizeof (struct intr_frame));
@@ -213,16 +213,17 @@ __do_fork (void *aux) {
 			continue;
 		}
 
-		struct file *new_file;
-
-		if (file > 2) {
-			new_file = file_duplicate (file);
+		bool found = false;
+		if (!found) {
+			struct file *newfile;
+			if (file > 2) {
+				newfile = file_duplicate (file);
+			}
+			else {
+				newfile = file;
+			}
+			current->fd_table[i] = newfile;
 		}
-		else {
-			new_file = file;
-		}
-
-		current->fd_table[i] = new_file;
 	}
 
 	current->fd_idx = parent->fd_idx;
