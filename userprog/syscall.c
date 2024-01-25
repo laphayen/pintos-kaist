@@ -232,20 +232,16 @@ int
 open (const char *file) {
 	check_address (file);
 
-	int fd;
-
-	lock_acquire (&filesys_lock);
-
 	struct file *file_obj = filesys_open (file);
+	int fd = process_add_file (file_obj);
 
 	if (file_obj == NULL) {
-		lock_release (&filesys_lock);
 		return -1;
 	}
 
-	fd = process_add_file (file_obj);
-	
-	lock_release (&filesys_lock);
+	if (fd == -1) {
+		file_close (file_obj);
+	}
 
 	return fd;
 }
@@ -256,13 +252,13 @@ int
 filesize (int fd) {
 	check_address (fd);
 	
-	struct file *file = process_get_file (fd);
+	struct file *file_obj = process_get_file (fd);
 
-	if (file == NULL) {
+	if (file_obj == NULL) {
 		return -1;
 	}
 
-	return file_length (file);
+	return file_length (file_obj);
 }
 
 /* File Descriptor */
@@ -306,21 +302,22 @@ write (int fd, void *buffer, unsigned size) {
 	struct file *file_obj = process_get_file (fd);
 	int write_count;
 
-	if (fd == 0) {
-		return 0;
-	}
-	else if (fd == 1) {
-		lock_acquire (&filesys_lock);
+	lock_acquire (&filesys_lock);
+
+	if (fd == 1) {
 		putbuf (buffer, size);
-		lock_release (&filesys_lock);
-		return size;
+		write_count = size;
 	}
 	else {
-		lock_acquire (&filesys_lock);
-		write_count = file_write (file_obj, buffer, size);
-		lock_release (&filesys_lock);
-		return write_count;
+		if (file_obj != NULL) {
+			write_count = file_write (file_obj, buffer, size);
+		}
+		else {
+			write_count = -1;
+		}
 	}
+	lock_release (&filesys_lock);
+	return write_count;
 }
 
 /* File Descriptor */
@@ -333,9 +330,7 @@ seek (int fd, unsigned position) {
 		return;
 	}
 
-	lock_acquire (&filesys_lock);
 	file_seek (file, position);
-	lock_release (&filesys_lock);
 }
 
 /* File Descriptor */
@@ -348,9 +343,7 @@ tell (int fd) {
 		return;
 	}
 
-	lock_acquire (&filesys_lock);
 	return file_tell (file);
-	lock_release (&filesys_lock);
 }
 
 /* File Descriptor */
@@ -362,11 +355,8 @@ close (int fd) {
 	if (file == NULL) {
 		return;
 	}
-
-	lock_acquire (&filesys_lock);
-	thread_current ()->fd_table[fd] = NULL;
-	file_close (file);
-	lock_release (&filesys_lock);
+	
+	process_close_file (fd);
 }
 
 /* File Descriptor*/
@@ -395,7 +385,7 @@ struct file
 *process_get_file (int fd) {
 	struct thread *curr = thread_current ();
 
-	if (fd >=0 && fd < FDCOUNT_LIMIT) {
+	if (fd < 0 || fd >= FDCOUNT_LIMIT) {
 		return NULL;
 	}
 	
