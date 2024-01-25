@@ -48,7 +48,7 @@ pass tests/userprog/exec-bad-ptr
 FAIL tests/userprog/exec-read
 pass tests/userprog/wait-simple
 FAIL tests/userprog/wait-twice
-pass tests/userprog/wait-killed
+FAIL tests/userprog/wait-killed
 FAIL tests/userprog/wait-bad-pid
 pass tests/userprog/multi-recurse
 FAIL tests/userprog/multi-child-fd
@@ -93,4 +93,4 @@ pass tests/threads/priority-preempt
 pass tests/threads/priority-sema
 pass tests/threads/priority-condvar
 pass tests/threads/priority-donate-chain
-38 of 95 tests failed.
+39 of 95 tests failed.
