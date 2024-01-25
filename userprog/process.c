@@ -403,6 +403,10 @@ struct thread
 	struct thread *curr = thread_current ();
 	struct list_elem *e;
 
+	if (list_empty(&curr->child_list)) {
+		return NULL;
+	}
+
 	for (e = list_begin (&curr->child_list); e != (&curr->child_list); e = list_next (e)) {
 		struct thread *child = list_entry (e, struct thread, child_elem);
 
