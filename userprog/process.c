@@ -401,17 +401,15 @@ argument_stack (char **parse, int count, void **rsp) {
 struct thread 
 *get_child_process (int pid) {
 	struct thread *curr = thread_current ();
-	struct list_elem *e;
+	struct list_elem *curr_elem;
 
 	if (list_empty(&curr->child_list)) {
 		return NULL;
 	}
 
-	for (e = list_begin (&curr->child_list); e != (&curr->child_list); e = list_next (e)) {
-		struct thread *child = list_entry (e, struct thread, child_elem);
-
-		if (child->tid == pid) {
-			return child;
+	for (curr_elem = list_front (&curr->child_list); curr_elem != list_tail (&curr->child_list); curr_elem = list_next(curr_elem)) {
+		if (list_entry (curr_elem, struct thread, child_elem)->tid == pid) {
+			return list_entry (curr_elem, struct thread, child_elem);
 		}
 	}
 
