@@ -93,7 +93,7 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 
 	memcpy (&curr->parent_if, if_, sizeof (struct intr_frame));
 
-	tid_t tid = thread_create (name, PRI_DEFAULT, __do_fork, curr);
+	tid_t tid = thread_create (name, curr->priority, __do_fork, curr);
 
 	if (tid == TID_ERROR) {
 		return TID_ERROR;
@@ -277,6 +277,8 @@ process_exec (void *f_name) {
 	/* Argument Passing */
 	/* If load failed, quit. */
 	if (!success) {
+		/* Argument Passing */
+		palloc_free_page (file_name);
 		return -1;
 	}
 
@@ -287,9 +289,6 @@ process_exec (void *f_name) {
 
 	/* Argument Passing */
 	// hex_dump (_if.rsp, _if.rsp, USER_STACK - (uint64_t)_if.rsp, true);
-
-	/* Argument Passing */
-	palloc_free_page (file_name);
 
 	/* Start switched process. */
 	do_iret (&_if);
