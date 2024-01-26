@@ -271,11 +271,17 @@ filesize (int fd) {
 int
 read (int fd, void *buffer, unsigned size) {
 	check_address(buffer);
-    off_t read_byte;
+	struct file *file_obj = process_get_file (fd);
+    int read_count;
     uint8_t *read_buffer = buffer;
+
+	if (file_obj == NULL) {
+		return -1;
+	}
+
     if (fd == 0) {
         char key;
-        for (read_byte = 0; read_byte < size; read_byte++) {
+        for (read_count = 0; read_count < size; read_count++) {
             key = input_getc ();
             *read_buffer++ = key;
             if (key == '\0') {
@@ -284,18 +290,14 @@ read (int fd, void *buffer, unsigned size) {
         }
     }
     else if (fd == 1) {
-        return -1;
+        read_count = -1;
     }
     else {
-        struct file *read_file = process_get_file (fd);
-        if (read_file == NULL) {
-            return -1;
-        }
         lock_acquire (&filesys_lock);
-        read_byte = file_read(read_file, buffer, size);
+        read_count = file_read(file_obj, buffer, size);
         lock_release (&filesys_lock);
     }
-    return read_byte;
+    return read_count;
 }
 
 /* File Descriptor */
