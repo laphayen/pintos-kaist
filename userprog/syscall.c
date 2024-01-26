@@ -234,10 +234,6 @@ open (const char *file) {
 
 	struct file *file_obj = filesys_open (file);
 
-	if (file == NULL) {
-		return -1;
-	}
-
 	if (file_obj == NULL) {
 		return -1;
 	}
@@ -281,13 +277,15 @@ read (int fd, void *buffer, unsigned size) {
 
     if (fd == 0) {
         char key;
-        for (read_count = 0; read_count < size; read_count++) {
+		int i;
+        for (i = 0; i < size; i++) {
             key = input_getc ();
             *read_buffer++ = key;
             if (key == '\0') {
                 break;
             }
         }
+		read_count = i;
     }
     else if (fd == 1) {
         read_count = -1;
@@ -318,7 +316,7 @@ write (int fd, void *buffer, unsigned size) {
 	}
 	else {
 		if (file_obj == NULL) {
-			return 0;
+			return -1;
 		}
 		else {
 			lock_acquire (&filesys_lock);
@@ -335,7 +333,7 @@ void
 seek (int fd, unsigned position) {
 	struct file *file = process_get_file (fd);
 
-	if (file <= 2) {
+	if (fd < 2) {
 		return;
 	}
 
@@ -359,12 +357,20 @@ tell (int fd) {
 /* A system call for closing an open file. */
 void
 close (int fd) {
-	struct file *file = process_get_file (fd);
+	struct thread *curr = thread_current ();
+	struct file *file_obj = process_get_file (fd);
 	
-	if (file == NULL) {
+	if (file_obj == NULL) {
 		return;
 	}
-	
+
+	if (fd == 0 || file_obj == STDIN) {
+		curr->stdin_count--;
+	}
+	else if (fd == 1 || file_obj == STDOUT) {
+		curr->stdout_count--;
+	}
+
 	process_close_file (fd);
 }
 
