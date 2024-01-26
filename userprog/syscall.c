@@ -106,7 +106,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			}
 			break;
 		case SYS_WAIT:
-			f->R.rax = process_wait (f->R.rdi);
+			f->R.rax = wait (f->R.rdi);
 			break;
 		case SYS_CREATE:
 			f->R.rax = create (f->R.rdi, f->R.rsi);
@@ -233,11 +233,16 @@ open (const char *file) {
 	check_address (file);
 
 	struct file *file_obj = filesys_open (file);
-	int fd = process_add_file (file_obj);
+
+	if (file == NULL) {
+		return -1;
+	}
 
 	if (file_obj == NULL) {
 		return -1;
 	}
+
+	int fd = process_add_file (file_obj);
 
 	if (fd == -1) {
 		file_close (file_obj);
@@ -302,22 +307,24 @@ write (int fd, void *buffer, unsigned size) {
 	struct file *file_obj = process_get_file (fd);
 	int write_count;
 
-	lock_acquire (&filesys_lock);
-
-	if (fd == 1) {
+	if (fd == 0) {
+		return 0;
+	}
+	else if (fd == 1) {
 		putbuf (buffer, size);
-		write_count = size;
+		return size;
 	}
 	else {
-		if (file_obj != NULL) {
-			write_count = file_write (file_obj, buffer, size);
+		if (file_obj == NULL) {
+			return 0;
 		}
 		else {
-			write_count = -1;
+			lock_acquire (&filesys_lock);
+			write_count = file_write (file_obj, buffer, size);
+			lock_release (&filesys_lock);
+			return write_count;
 		}
 	}
-	lock_release (&filesys_lock);
-	return write_count;
 }
 
 /* File Descriptor */
