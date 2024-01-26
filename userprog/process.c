@@ -137,7 +137,7 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 	/* 3. TODO: Allocate new PAL_USER page for the child and set result to
 	 *    TODO: NEWPAGE. */
 	/* File Descriptor */
-	newpage = palloc_get_page (PAL_USER | PAL_ZERO);
+	newpage = palloc_get_page (PAL_USER);
 	if (newpage == NULL) {
 		return false;
 	}
@@ -353,10 +353,11 @@ process_exit (void) {
 	
 	file_close (curr->running);
 
+	process_cleanup ();
+
+	sema_up (&curr->fork_sema);
 	sema_up (&curr->wait_sema);
 	sema_down (&curr->free_sema);
-
-	process_cleanup ();
 }
 
 /* Argument Passing */
