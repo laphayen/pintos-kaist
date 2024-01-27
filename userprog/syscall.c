@@ -223,7 +223,7 @@ exec (const char *file_name) {
 /* A system call to wait until a child process exits. */
 int
 wait (int pid) {
-	return process_wait (pid);
+	process_wait (pid);
 }
 
 /* File Descriptor */
@@ -308,7 +308,7 @@ write (int fd, void *buffer, unsigned size) {
 	int write_count;
 
 	if (fd == 0) {
-		return 0;
+		return -1;
 	}
 	else if (fd == 1) {
 		putbuf (buffer, size);
@@ -344,13 +344,17 @@ seek (int fd, unsigned position) {
 /* A system call for closing an open file. */
 unsigned
 tell (int fd) {
-	struct file *file = process_get_file (fd);
+	struct file *file_obj = process_get_file (fd);
+
+	if (file_obj == NULL) {
+		return;
+	}
 
 	if (fd < 2) {
 		return;
 	}
 
-	return file_tell (file);
+	return file_tell (file_obj);
 }
 
 /* File Descriptor */
