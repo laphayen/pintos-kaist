@@ -344,19 +344,18 @@ process_exit (void) {
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
 	/* File Descriptor */
-	for (int i = 0; i < FDCOUNT_LIMIT; i++) {
-		close(i);
-	}
-
 	palloc_free_multiple (curr->fd_table, FDT_PAGES);
 	
 	file_close (curr->running);
 
-	process_cleanup ();
-
-	sema_up (&curr->fork_sema);
+	for (int i = 0; i < FDCOUNT_LIMIT; i++) {
+		close(i);
+	}
+	
 	sema_up (&curr->wait_sema);
 	sema_down (&curr->free_sema);
+
+	process_cleanup ();
 }
 
 /* Argument Passing */
