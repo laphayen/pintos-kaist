@@ -223,7 +223,7 @@ exec (const char *file_name) {
 /* A system call to wait until a child process exits. */
 int
 wait (int pid) {
-	process_wait (pid);
+	return process_wait (pid);
 }
 
 /* File Descriptor */
@@ -267,13 +267,9 @@ filesize (int fd) {
 int
 read (int fd, void *buffer, unsigned size) {
 	check_address(buffer);
-	struct file *file_obj = process_get_file (fd);
-    int read_count;
-    uint8_t *read_buffer = buffer;
 
-	if (file_obj == NULL) {
-		return -1;
-	}
+    uint8_t *read_buffer = buffer;
+	int read_count;
 
     if (fd == 0) {
         char key;
@@ -291,6 +287,10 @@ read (int fd, void *buffer, unsigned size) {
         read_count = -1;
     }
     else {
+		struct file *file_obj = process_get_file (fd);
+		if (file_obj == NULL) {
+			return -1;
+		}
         lock_acquire (&filesys_lock);
         read_count = file_read(file_obj, buffer, size);
         lock_release (&filesys_lock);
@@ -304,19 +304,19 @@ int
 write (int fd, void *buffer, unsigned size) {
 	check_address (buffer);
 
-	struct file *file_obj = process_get_file (fd);
 	int write_count;
 
 	if (fd == 0) {
-		return -1;
+		return 0;
 	}
 	else if (fd == 1) {
 		putbuf (buffer, size);
 		return size;
 	}
 	else {
+		struct file *file_obj = process_get_file (fd);
 		if (file_obj == NULL) {
-			return -1;
+			return 0;
 		}
 		else {
 			lock_acquire (&filesys_lock);
