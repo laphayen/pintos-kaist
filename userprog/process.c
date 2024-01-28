@@ -554,6 +554,9 @@ load (const char *file_name, struct intr_frame *if_) {
 	}
 
 	/* Denying Write to Executable */
+	if (thread_current ()->running) {
+		file_close (thread_current ()->running);
+	}
 	t->running = file;
 	file_deny_write (file);
 
