@@ -136,14 +136,14 @@ struct thread {
 	struct file **fd_table;
 	int fd_idx;
 
+	int stdin_count;
+	int stdout_count;
+
 	/* File Descriptor */
 	struct semaphore fork_sema;
 
 	/* Denying Write to Executable */
 	struct file *running;
-
-	int stdin_count;
-	int stdout_count;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
