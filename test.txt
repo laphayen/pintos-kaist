@@ -1,4 +1,3 @@
-pass tests/threads/priority-donate-chain
 pass tests/userprog/args-none
 pass tests/userprog/args-single
 pass tests/userprog/args-multiple
@@ -56,12 +55,12 @@ FAIL tests/userprog/multi-child-fd
 pass tests/userprog/rox-simple
 pass tests/userprog/rox-child
 pass tests/userprog/rox-multichild
-FAIL tests/userprog/bad-read
-FAIL tests/userprog/bad-write
-FAIL tests/userprog/bad-read2
-FAIL tests/userprog/bad-write2
-FAIL tests/userprog/bad-jump
-FAIL tests/userprog/bad-jump2
+pass tests/userprog/bad-read
+pass tests/userprog/bad-write
+pass tests/userprog/bad-read2
+pass tests/userprog/bad-write2
+pass tests/userprog/bad-jump
+pass tests/userprog/bad-jump2
 FAIL tests/filesys/base/lg-create
 FAIL tests/filesys/base/lg-full
 pass tests/filesys/base/lg-random
@@ -75,7 +74,7 @@ FAIL tests/filesys/base/sm-seq-random
 pass tests/filesys/base/syn-read
 pass tests/filesys/base/syn-remove
 pass tests/filesys/base/syn-write
-FAIL tests/userprog/no-vm/multi-oom
+pass tests/userprog/no-vm/multi-oom
 pass tests/threads/alarm-single
 pass tests/threads/alarm-multiple
 pass tests/threads/alarm-simultaneous
@@ -94,4 +93,4 @@ pass tests/threads/priority-preempt
 pass tests/threads/priority-sema
 pass tests/threads/priority-condvar
 pass tests/threads/priority-donate-chain
-17 of 95 tests failed.
+10 of 95 tests failed.
