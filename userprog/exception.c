@@ -34,7 +34,7 @@ exception_init (void) {
 	   we set DPL==3, meaning that user programs are allowed to
 	   invoke them via these instructions. */
 	intr_register_int (3, 3, INTR_ON, kill, "#BP Breakpoint Exception");
-	intr_register_int (4, 3, INTR_ON, kill, "#OF Overflow Exception");
+intr_register_int (4, 3, INTR_ON, kill, "#OF Overflow Exception");
 	intr_register_int (5, 3, INTR_ON, kill,
 			"#BR BOUND Range Exceeded Exception");
 
@@ -155,6 +155,7 @@ page_fault (struct intr_frame *f) {
 			not_present ? "not present" : "rights violation",
 			write ? "writing" : "reading",
 			user ? "user" : "kernel");
+	/* File Descriptor */
 	// kill (f);
 	exit(-1);
 }
