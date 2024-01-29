@@ -203,9 +203,6 @@ thread_create (const char *name, int priority,
 	struct thread *t;
 	tid_t tid;
 
-	/* Hierarchical Process Structure */
-	struct thread *curr = thread_current ();
-
 	ASSERT (function != NULL);
 
 	/* Allocate thread. */
@@ -216,6 +213,10 @@ thread_create (const char *name, int priority,
 	/* Initialize thread. */
 	init_thread (t, name, priority);
 	tid = t->tid = allocate_tid ();
+
+	/* Hierarchical Process Structure */
+	struct thread *curr = thread_current ();
+	list_push_back (&curr->child_list, &t->child_elem);
 
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
@@ -229,7 +230,6 @@ thread_create (const char *name, int priority,
 	t->tf.eflags = FLAG_IF;
 
 	/* File Descriptor */
-	list_push_back (&curr->child_list, &t->child_elem);
 	t->fd_table = palloc_get_multiple (PAL_ZERO, FDT_PAGES);
 
 	/* File Descriptor */
@@ -515,7 +515,6 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->recent_cpu = LOAD_AVG_DEFAULT;
 
 	/* Hierarchical Process Structure */
-	t->exit_status = 0;
 	list_init (&t->child_list);
 	sema_init (&t->wait_sema, 0);
 	sema_init (&t->free_sema, 0);
