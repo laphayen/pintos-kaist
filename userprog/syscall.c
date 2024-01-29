@@ -106,7 +106,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			}
 			break;
 		case SYS_WAIT:
-			f->R.rax = wait (f->R.rdi);
+			f->R.rax = process_wait (f->R.rdi);
 			break;
 		case SYS_CREATE:
 			f->R.rax = create (f->R.rdi, f->R.rsi);
@@ -245,7 +245,7 @@ open (const char *file) {
 	if (fd == -1) {
 		file_close (file_obj);
 	}
-
+	
 	lock_release (&filesys_lock);
 
 	return fd;
@@ -282,7 +282,7 @@ read (int fd, void *buffer, unsigned size) {
 	}
 
     if (fd == 0) {
-		if (curr->stdin_count ==0) {
+		if (curr->stdin_count == 0) {
 			NOT_REACHED ();
 			process_close_file (fd);
 			read_count = -1;
