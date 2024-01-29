@@ -93,18 +93,14 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 
 	memcpy (&curr->parent_if, if_, sizeof (struct intr_frame));
 
-	tid_t tid = thread_create (name, curr->priority, __do_fork, curr);
-
-	if (tid == TID_ERROR) {
-		return TID_ERROR;
-	}
+	tid_t tid = thread_create (name, PRI_DEFAULT, __do_fork, curr);
 
 	struct thread *child = get_child_process (tid);
 
 	sema_down (&child->fork_sema);
 
 	if (child->exit_status == -1) {
-		return TID_ERROR;
+		return process_wait (tid);
 	}
 
 	return tid;
@@ -206,24 +202,14 @@ __do_fork (void *aux) {
 		goto error;
 	}
 
-	for (int i = 0; i < FDCOUNT_LIMIT; i++) {
-		struct file *file = parent->fd_table[i];
+	for (int fd = 2; fd < FDCOUNT_LIMIT; fd++) {
+		struct file *file = parent->fd_table[fd];
 
 		if (file == NULL) {
 			continue;
 		}
 
-		bool found = false;
-		if (!found) {
-			struct file *newfile;
-			if (file > 2) {
-				newfile = file_duplicate (file);
-			}
-			else {
-				newfile = file;
-			}
-			current->fd_table[i] = newfile;
-		}
+		current->fd_table[fd] = file_duplicate (file);
 	}
 
 	current->fd_idx = parent->fd_idx;
@@ -344,18 +330,19 @@ process_exit (void) {
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
 	/* File Descriptor */
-	palloc_free_multiple (curr->fd_table, FDT_PAGES);
-	
-	file_close (curr->running);
-
-	for (int i = 0; i < FDCOUNT_LIMIT; i++) {
+	for (int i = 2; i < FDCOUNT_LIMIT; i++) {
 		close(i);
 	}
+
+	file_close (curr->running);
+
+	palloc_free_multiple (curr->fd_table, FDT_PAGES);
+
+	
+	process_cleanup ();
 	
 	sema_up (&curr->wait_sema);
 	sema_down (&curr->free_sema);
-
-	process_cleanup ();
 }
 
 /* Argument Passing */
@@ -400,16 +387,18 @@ argument_stack (char **parse, int count, void **rsp) {
 struct thread 
 *get_child_process (int pid) {
 	struct thread *curr = thread_current ();
+	struct list *child_list = &curr->child_list;
 	struct list_elem *curr_elem;
 
-	if (list_empty(&curr->child_list)) {
+	if (list_empty(child_list)) {
 		return NULL;
 	}
 
-	for (curr_elem = list_front (&curr->child_list); curr_elem != list_tail (&curr->child_list); curr_elem = list_next(curr_elem)) {
-		if (list_entry (curr_elem, struct thread, child_elem)->tid == pid) {
-			return list_entry (curr_elem, struct thread, child_elem);
-		}
+	for (struct list_elem *e = list_begin(child_list); e != list_end(child_list); e = list_next(e))
+	{
+		struct thread *t = list_entry(e, struct thread, child_elem);
+		if (t->tid == pid)
+			return t;
 	}
 
 	return NULL;
