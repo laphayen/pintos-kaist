@@ -202,6 +202,9 @@ __do_fork (void *aux) {
 		goto error;
 	}
 
+	current->fd_table[0] = parent->fd_table[0];
+	current->fd_table[1] = parent->fd_table[1];
+
 	for (int fd = 2; fd < FDCOUNT_LIMIT; fd++) {
 		struct file *file = parent->fd_table[fd];
 
@@ -215,6 +218,8 @@ __do_fork (void *aux) {
 	current->fd_idx = parent->fd_idx;
 
 	sema_up (&current->fork_sema);
+
+	if_.R.rax = 0;
 
 	/* Finally, switch to the newly created process. */
 	if (succ)
@@ -330,14 +335,13 @@ process_exit (void) {
 	 * TODO: We recommend you to implement process resource cleanup here. */
 
 	/* File Descriptor */
-	for (int i = 2; i < FDCOUNT_LIMIT; i++) {
+	for (int i = 0; i < FDCOUNT_LIMIT; i++) {
 		close(i);
 	}
 
-	file_close (curr->running);
-
 	palloc_free_multiple (curr->fd_table, FDT_PAGES);
 
+	file_close (curr->running);
 	
 	process_cleanup ();
 	
@@ -543,9 +547,9 @@ load (const char *file_name, struct intr_frame *if_) {
 	}
 
 	/* Denying Write to Executable */
-	if (thread_current ()->running) {
-		file_close (thread_current ()->running);
-	}
+	// if (thread_current ()->running) {
+	// 	file_close (thread_current ()->running);
+	// }
 	t->running = file;
 	file_deny_write (file);
 
