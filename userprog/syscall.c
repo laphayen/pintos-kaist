@@ -278,6 +278,10 @@ read (int fd, void *buffer, unsigned size) {
 	if (file_obj == NULL) {
 		return -1;
 	}
+	
+	if (fd == 1) {
+		return -1;
+	}
 
     if (fd == 0) {
 		if (curr->stdin_count == 0) {
@@ -298,9 +302,6 @@ read (int fd, void *buffer, unsigned size) {
 			read_count = i;
 		}
     }
-    else if (fd == 1) {
-        read_count = -1;
-    }
     else {
         lock_acquire (&filesys_lock);
         read_count = file_read(file_obj, buffer, size);
@@ -318,6 +319,7 @@ write (int fd, void *buffer, unsigned size) {
 	struct thread *curr = thread_current ();
 	struct file *file_obj = process_get_file (fd);
 	int write_count;
+
 	if (file_obj == NULL) {
 		return -1;
 	}
@@ -368,6 +370,7 @@ close (int fd){
 	if (fd < 2) {
 		return;
 	}
+
 	struct file *file_obj = process_get_file(fd);
 
 	if(file_obj == NULL) {
