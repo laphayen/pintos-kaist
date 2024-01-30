@@ -106,7 +106,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			}
 			break;
 		case SYS_WAIT:
-			f->R.rax = process_wait (f->R.rdi);
+			f->R.rax = wait (f->R.rdi);
 			break;
 		case SYS_CREATE:
 			f->R.rax = create (f->R.rdi, f->R.rsi);
@@ -223,7 +223,7 @@ exec (const char *file_name) {
 /* A system call to wait until a child process exits. */
 int
 wait (int pid) {
-	return process_wait (pid);
+	process_wait (pid);
 }
 
 /* File Descriptor */
@@ -255,8 +255,6 @@ open (const char *file) {
 /* A system call that provides information about the size of a file. */
 int
 filesize (int fd) {
-	check_address (fd);
-	
 	struct file *file_obj = process_get_file (fd);
 
 	if (file_obj == NULL) {
@@ -328,15 +326,8 @@ write (int fd, void *buffer, unsigned size) {
 		write_count = -1;
 	}
 	else if (fd == 1) {
-		if (curr->stdout_count == 0) {
-			NOT_REACHED ();
-			process_close_file (fd);
-			write_count = -1;
-		}
-		else {
-			putbuf (buffer, size);
-			write_count = size;
-		}
+		putbuf (buffer, size);
+		write_count = size;
 	}
 	else {
 		lock_acquire (&filesys_lock);
@@ -352,11 +343,9 @@ void
 seek (int fd, unsigned position) {
 	struct file *file = process_get_file (fd);
 
-	if (fd < 2) {
-		return;
+	if (fd > 2) {
+		file_seek (file, position);
 	}
-
-	file_seek (file, position);
 }
 
 /* File Descriptor */
@@ -364,10 +353,6 @@ seek (int fd, unsigned position) {
 unsigned
 tell (int fd) {
 	struct file *file_obj = process_get_file (fd);
-
-	if (file_obj == NULL) {
-		return;
-	}
 
 	if (fd < 2) {
 		return;
@@ -379,26 +364,18 @@ tell (int fd) {
 /* File Descriptor */
 /* A system call for closing an open file. */
 void
-close (int fd) {
-	struct thread *curr = thread_current ();
-	struct file *file_obj = process_get_file (fd);
-	
-	if (file_obj == NULL) {
+close (int fd){
+	if (fd < 2) {
+		return;
+	}
+	struct file *file_obj = process_get_file(fd);
+
+	if(file_obj == NULL) {
 		return;
 	}
 
-	if (fd == 0 || file_obj == STDIN) {
-		curr->stdin_count--;
-	}
-	else if (fd == 1 || file_obj == STDOUT) {
-		curr->stdout_count--;
-	}
-
-	process_close_file (fd);
-
-	if (fd <= 1 || file_obj <= 2) {
-		return;
-	}
+	process_close_file(fd);
+	file_close(file_obj);
 }
 
 /* File Descriptor*/
@@ -440,11 +417,11 @@ void
 process_close_file (int fd) {
 	struct thread *curr =  thread_current ();
 
-	if (fd >=0 && fd < FDCOUNT_LIMIT) {
+	if (fd < 0 || fd >= FDCOUNT_LIMIT) {
 		return NULL;
 	}
 
-	file_close (curr->fd_table[fd]);
+	// file_close (curr->fd_table[fd]);
 
 	curr->fd_table[fd] = NULL;
 }
