@@ -237,6 +237,7 @@ open (const char *file) {
 	struct file *file_obj = filesys_open (file);
 
 	if (file_obj == NULL) {
+		lock_release (&filesys_lock);
 		return -1;
 	}
 
