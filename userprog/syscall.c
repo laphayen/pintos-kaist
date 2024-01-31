@@ -368,16 +368,15 @@ tell (int fd) {
 /* A system call for closing an open file. */
 void
 close (int fd){
-	if (fd < 2) {
+		if (fd < 2) {
 		return;
 	}
-
 	struct file *file_obj = process_get_file (fd);
 
 	if (file_obj == NULL) {
 		return;
 	}
-
+	
 	process_close_file (fd);
 	file_close (file_obj);
 }
@@ -424,8 +423,6 @@ process_close_file (int fd) {
 	if (fd < 0 || fd >= FDCOUNT_LIMIT) {
 		return NULL;
 	}
-
-	// file_close (curr->fd_table[fd]);
 
 	curr->fd_table[fd] = NULL;
 }
