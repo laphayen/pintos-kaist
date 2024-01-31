@@ -50,7 +50,7 @@ struct lock filesys_lock;
 /* File Descriptor */
 int open (const char *file);
 int read (int fd, void *buffer, unsigned size);
-int write (int fd, void *buffer, unsigned size);
+int write (int fd, const void *buffer, unsigned size);
 void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
@@ -310,7 +310,7 @@ read (int fd, void *buffer, unsigned size) {
 /* File Descriptor */
 /* A system call for writing data to an open file. */
 int
-write (int fd, void *buffer, unsigned size) {
+write (int fd, const void *buffer, unsigned size) {
 	check_address (buffer);
 
 	struct thread *curr = thread_current ();
