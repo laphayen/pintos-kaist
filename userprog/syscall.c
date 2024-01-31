@@ -271,20 +271,16 @@ int
 read (int fd, void *buffer, unsigned size) {
 	check_address(buffer);
 
-    uint8_t *read_buffer = buffer;
+    unsigned char *read_buffer = buffer;
 	struct thread *curr = thread_current ();
 	struct file *file_obj = process_get_file (fd);
 	int read_count;
 
-	if (file_obj == NULL) {
-		return -1;
-	}
-	
-	if (fd == 1) {
+	if (file_obj == NULL || file_obj == STDOUT) {
 		return -1;
 	}
 
-    if (fd == 0) {
+    if (file_obj == STDIN) {
 		if (curr->stdin_count == 0) {
 			NOT_REACHED ();
 			process_close_file (fd);
@@ -321,16 +317,20 @@ write (int fd, void *buffer, unsigned size) {
 	struct file *file_obj = process_get_file (fd);
 	int write_count;
 
-	if (file_obj == NULL) {
+	if (file_obj == NULL || file_obj == STDIN) {
 		return -1;
 	}
 
-	if (fd == 0) {
-		write_count = -1;
-	}
-	else if (fd == 1) {
-		putbuf (buffer, size);
-		write_count = size;
+	if (file_obj == STDOUT) {
+		if (curr->stdout_count == 0) {
+			NOT_REACHED ();
+			process_close_file (fd);
+			write_count = -1;
+		}
+		else {
+			putbuf (buffer, size);
+			write_count = size;
+		}
 	}
 	else {
 		lock_acquire (&filesys_lock);
@@ -372,14 +372,14 @@ close (int fd){
 		return;
 	}
 
-	struct file *file_obj = process_get_file(fd);
+	struct file *file_obj = process_get_file (fd);
 
-	if(file_obj == NULL) {
+	if (file_obj == NULL) {
 		return;
 	}
 
-	process_close_file(fd);
-	file_close(file_obj);
+	process_close_file (fd);
+	file_close (file_obj);
 }
 
 /* File Descriptor*/
