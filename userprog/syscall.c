@@ -320,8 +320,8 @@ write (int fd, const void *buffer, unsigned size) {
 
 	if (file_obj == STDOUT) {
 		if (curr->stdout_count == 0) {
-		// 	NOT_REACHED ();
-		// 	process_close_file (fd);
+			NOT_REACHED ();
+			process_close_file (fd);
 			write_count = -1;
 		}
 		else {
@@ -341,11 +341,15 @@ write (int fd, const void *buffer, unsigned size) {
 /* A system call for moving the position within an open file. */
 void
 seek (int fd, unsigned position) {
-	struct file *file = process_get_file (fd);
+	check_address (fd);
 
-	if (fd > 2) {
-		file_seek (file, position);
+	struct file *file_obj = process_get_file (fd);
+
+	if (fd < 2) {
+		return;
 	}
+
+	file_seek (file_obj, position);
 }
 
 /* File Descriptor */
@@ -376,7 +380,7 @@ close (int fd){
 	}
 	
 	process_close_file (fd);
-	file_close (file_obj);
+	// file_close (file_obj);
 }
 
 /* File Descriptor*/
