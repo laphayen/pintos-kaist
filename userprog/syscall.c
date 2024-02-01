@@ -37,7 +37,7 @@ bool remove (const char *file);
 
 /* Hierarchical Process Structure */
 int exec (const char *file_name);
-int wait (int pid);
+int wait (tid_t pid);
 
 /* File Descriptor */
 struct file *process_get_file (int fd);
@@ -106,7 +106,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			}
 			break;
 		case SYS_WAIT:
-			f->R.rax = wait (f->R.rdi);
+			f->R.rax = process_wait (f->R.rdi);
 			break;
 		case SYS_CREATE:
 			f->R.rax = create (f->R.rdi, f->R.rsi);
@@ -222,7 +222,7 @@ exec (const char *file_name) {
 /* Hierarchical Process Structure */
 /* A system call to wait until a child process exits. */
 int
-wait (int pid) {
+wait (tid_t pid) {
 	process_wait (pid);
 }
 
@@ -237,7 +237,6 @@ open (const char *file) {
 	struct file *file_obj = filesys_open (file);
 
 	if (file_obj == NULL) {
-		lock_release (&filesys_lock);
 		return -1;
 	}
 
@@ -282,8 +281,6 @@ read (int fd, void *buffer, unsigned size) {
 
     if (file_obj == STDIN) {
 		if (curr->stdin_count == 0) {
-			NOT_REACHED ();
-			process_close_file (fd);
 			read_count = -1;
 		}
 		else {
