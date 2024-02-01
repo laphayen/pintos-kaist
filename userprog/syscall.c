@@ -323,8 +323,8 @@ write (int fd, const void *buffer, unsigned size) {
 
 	if (file_obj == STDOUT) {
 		if (curr->stdout_count == 0) {
-			NOT_REACHED ();
-			process_close_file (fd);
+		// 	NOT_REACHED ();
+		// 	process_close_file (fd);
 			write_count = -1;
 		}
 		else {
@@ -368,9 +368,10 @@ tell (int fd) {
 /* A system call for closing an open file. */
 void
 close (int fd){
-		if (fd < 2) {
+	if (fd < 2) {
 		return;
 	}
+
 	struct file *file_obj = process_get_file (fd);
 
 	if (file_obj == NULL) {
