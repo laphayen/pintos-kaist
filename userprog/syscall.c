@@ -270,16 +270,16 @@ int
 read (int fd, void *buffer, unsigned size) {
 	check_address(buffer);
 
-    unsigned char *read_buffer = buffer;
+	unsigned char *read_buffer = buffer;
 	struct thread *curr = thread_current ();
 	struct file *file_obj = process_get_file (fd);
 	int read_count;
 
 	if (file_obj == NULL || file_obj == STDOUT) {
 		return -1;
-	}
+	}	
 
-    if (file_obj == STDIN) {
+	if (file_obj == STDIN) {
 		if (curr->stdin_count == 0) {
 			read_count = -1;
 		}
@@ -295,13 +295,14 @@ read (int fd, void *buffer, unsigned size) {
 			}
 			read_count = i;
 		}
-    }
-    else {
-        lock_acquire (&filesys_lock);
-        read_count = file_read(file_obj, buffer, size);
-        lock_release (&filesys_lock);
-    }
-    return read_count;
+	}
+	else {
+		lock_acquire (&filesys_lock);
+		read_count = file_read (file_obj, buffer, size);
+		lock_release (&filesys_lock);
+	}
+
+	return read_count;
 }
 
 /* File Descriptor */
@@ -382,7 +383,6 @@ close (int fd){
 	}
 	
 	process_close_file (fd);
-	// file_close (file_obj);
 }
 
 /* File Descriptor*/

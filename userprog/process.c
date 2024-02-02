@@ -342,6 +342,7 @@ process_exit (void) {
 
 	palloc_free_multiple (curr->fd_table, FDT_PAGES);
 
+	/* Denying Write to Executable */
 	file_close (curr->running);
 	
 	process_cleanup ();
@@ -394,16 +395,18 @@ struct thread
 	struct thread *curr = thread_current ();
 	struct list *child_list = &curr->child_list;
 	struct list_elem *curr_elem;
+	struct list_elem *e;
 
 	if (list_empty(child_list)) {
 		return NULL;
 	}
 
-	for (struct list_elem *e = list_begin(child_list); e != list_end(child_list); e = list_next(e))
+	for (e = list_begin(child_list); e != list_end(child_list); e = list_next(e))
 	{
 		struct thread *t = list_entry(e, struct thread, child_elem);
-		if (t->tid == pid)
+		if (t->tid == pid) {
 			return t;
+		}
 	}
 
 	return NULL;
@@ -548,9 +551,6 @@ load (const char *file_name, struct intr_frame *if_) {
 	}
 
 	/* Denying Write to Executable */
-	// if (thread_current ()->running) {
-	// 	file_close (thread_current ()->running);
-	// }
 	t->running = file;
 	file_deny_write (file);
 
