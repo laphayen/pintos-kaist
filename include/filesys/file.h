@@ -3,6 +3,20 @@
 
 #include "filesys/off_t.h"
 
+/* Dup2 */
+#include <debug.h>
+#include "filesys/inode.h"
+#include "threads/malloc.h"
+
+/* Dup2 */
+/* An open file. */
+struct file {
+	struct inode *inode;        /* File's inode. */
+	off_t pos;                  /* Current position. */
+	bool deny_write;            /* Has file_deny_write() been called? */
+	int dup2_count;				/* Dup2 */
+};
+
 struct inode;
 
 /* Opening and closing files. */
