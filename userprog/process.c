@@ -100,6 +100,7 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 	sema_down (&child->fork_sema);
 
 	if (child->exit_status == -1) {
+		/* File Descriptor */
 		return process_wait (tid);
 	}
 
@@ -632,6 +633,7 @@ load (const char *file_name, struct intr_frame *if_) {
 
 done:
 	/* We arrive here whether the load is successful or not. */
+	/* Denying Write to Executable */
 	// file_close (file);
 	return success;
 }
