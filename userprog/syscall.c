@@ -17,6 +17,11 @@
 #include "threads/synch.h"
 #include "threads/vaddr.h"
 #include "threads/palloc.h"
+#include "filesys/file.h"
+
+/* Denying Write To Executable */
+const int STDIN = 1;
+const int STDOUT = 2;
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -32,7 +37,7 @@ bool remove (const char *file);
 
 /* Hierarchical Process Structure */
 int exec (const char *file_name);
-int wait (int pid);
+int wait (tid_t pid);
 
 /* File Descriptor */
 struct file *process_get_file (int fd);
@@ -45,7 +50,7 @@ struct lock filesys_lock;
 /* File Descriptor */
 int open (const char *file);
 int read (int fd, void *buffer, unsigned size);
-int write (int fd, void *buffer, unsigned size);
+int write (int fd, const void *buffer, unsigned size);
 void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
@@ -101,7 +106,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			}
 			break;
 		case SYS_WAIT:
-			f->R.rax = wait (f->R.rdi);
+			f->R.rax = process_wait (f->R.rdi);
 			break;
 		case SYS_CREATE:
 			f->R.rax = create (f->R.rdi, f->R.rsi);
@@ -196,15 +201,16 @@ int
 exec (const char *file_name) {
 	check_address (file_name);
 
+	int size = strlen (file_name) + 1;
 	char *fn_copy = palloc_get_page (PAL_ZERO);
 
 	if (fn_copy == NULL) {
 		exit (-1);
 	}
 
-	strlcpy (fn_copy, file_name, strlen (file_name) + 1);
+	strlcpy (fn_copy, file_name, size);
 
-	if (process_wait (fn_copy) == -1) {
+	if (process_exec (fn_copy) == -1) {
 		return -1;
 	}
 
@@ -216,8 +222,8 @@ exec (const char *file_name) {
 /* Hierarchical Process Structure */
 /* A system call to wait until a child process exits. */
 int
-wait (int pid) {
-	return process_wait (pid);
+wait (tid_t pid) {
+	process_wait (pid);
 }
 
 /* File Descriptor */
@@ -239,7 +245,7 @@ open (const char *file) {
 	if (fd == -1) {
 		file_close (file_obj);
 	}
-
+	
 	lock_release (&filesys_lock);
 
 	return fd;
@@ -249,70 +255,86 @@ open (const char *file) {
 /* A system call that provides information about the size of a file. */
 int
 filesize (int fd) {
-	check_address (fd);
-	
-	struct file *file = process_get_file (fd);
+	struct file *file_obj = process_get_file (fd);
 
-	if (file == NULL) {
+	if (file_obj == NULL) {
 		return -1;
 	}
 
-	return file_length (file);
+	return file_length (file_obj);
 }
 
 /* File Descriptor */
 /* A system call for reading data from an open file. */
 int
 read (int fd, void *buffer, unsigned size) {
-	check_address (buffer);
-	int read_count;
-	
+	check_address(buffer);
+
+	unsigned char *read_buffer = buffer;
+	struct thread *curr = thread_current ();
 	struct file *file_obj = process_get_file (fd);
-    
-	if (fd == 0) {
-		*(char *)buffer = input_getc ();
-		read_count = size;
-	}
-	else {
-		if (file_obj == NULL) {
-			return -1;
+	int read_count;
+
+	if (file_obj == NULL || file_obj == STDOUT) {
+		return -1;
+	}	
+
+	if (file_obj == STDIN) {
+		if (curr->stdin_count == 0) {
+			read_count = -1;
 		}
 		else {
-			lock_acquire (&filesys_lock);
-			read_count = file_read (file_obj, buffer, size);
-			lock_release (&filesys_lock);
+			char key;
+			int i;
+			for (i = 0; i < size; i++) {
+				key = input_getc ();
+				*read_buffer++ = key;
+				if (key == '\0') {
+					break;
+				}
+			}
+			read_count = i;
 		}
 	}
-	
+	else {
+		lock_acquire (&filesys_lock);
+		read_count = file_read (file_obj, buffer, size);
+		lock_release (&filesys_lock);
+	}
+
 	return read_count;
 }
 
 /* File Descriptor */
 /* A system call for writing data to an open file. */
 int
-write (int fd, void *buffer, unsigned size) {
+write (int fd, const void *buffer, unsigned size) {
 	check_address (buffer);
 
+	struct thread *curr = thread_current ();
 	struct file *file_obj = process_get_file (fd);
 	int write_count;
 
-	lock_acquire (&filesys_lock);
-
-	if (fd == 1) {
-		putbuf (buffer, size);
-		write_count = size;
+	if (file_obj == NULL || file_obj == STDIN) {
+		return -1;
 	}
-	else {
-		if (process_get_file (fd) != NULL) {
-			write_count = file_write (file_obj, buffer, size);
-		}
-		else {
+
+	if (file_obj == STDOUT) {
+		if (curr->stdout_count == 0) {
+			NOT_REACHED ();
+			process_close_file (fd);
 			write_count = -1;
 		}
+		else {
+			putbuf (buffer, size);
+			write_count = size;
+		}
 	}
-	
-	lock_release (&filesys_lock);
-	
+	else {
+		lock_acquire (&filesys_lock);
+		write_count = file_write (file_obj, buffer, size);
+		lock_release (&filesys_lock);
+	}
 	return write_count;
 }
 
@@ -320,38 +342,46 @@ write (int fd, void *buffer, unsigned size) {
 /* A system call for moving the position within an open file. */
 void
 seek (int fd, unsigned position) {
-	struct file *file = process_get_file (fd);
-
-	if (file <= 2) {
+	if (fd < 2) {
 		return;
 	}
 
-	file_seek (file, position);
+	struct file *file_obj = process_get_file (fd);
+
+	if (file_obj == NULL) {
+		return;
+	}
+
+	file_seek (file_obj, position);
 }
 
 /* File Descriptor */
 /* A system call for closing an open file. */
 unsigned
 tell (int fd) {
-	struct file *file = process_get_file (fd);
+	struct file *file_obj = process_get_file (fd);
 
 	if (fd < 2) {
 		return;
 	}
 
-	return file_tell (file);
+	return file_tell (file_obj);
 }
 
 /* File Descriptor */
 /* A system call for closing an open file. */
 void
-close (int fd) {
-	struct file *file = process_get_file (fd);
-	
-	if (file == NULL) {
+close (int fd){
+	if (fd < 2) {
 		return;
 	}
 
+	struct file *file_obj = process_get_file (fd);
+
+	if (file_obj == NULL) {
+		return;
+	}
+	
 	process_close_file (fd);
 }
 
@@ -381,7 +411,7 @@ struct file
 *process_get_file (int fd) {
 	struct thread *curr = thread_current ();
 
-	if (fd >=0 && fd < FDCOUNT_LIMIT) {
+	if (fd < 0 || fd >= FDCOUNT_LIMIT) {
 		return NULL;
 	}
 	
@@ -394,7 +424,7 @@ void
 process_close_file (int fd) {
 	struct thread *curr =  thread_current ();
 
-	if (fd >=0 && fd < FDCOUNT_LIMIT) {
+	if (fd < 0 || fd >= FDCOUNT_LIMIT) {
 		return NULL;
 	}
 

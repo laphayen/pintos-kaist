@@ -18,6 +18,10 @@
 #include "threads/mmu.h"
 #include "threads/vaddr.h"
 #include "intrinsic.h"
+
+/* File Descriptor */
+#include "userprog/syscall.h"
+
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -91,16 +95,13 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 
 	tid_t tid = thread_create (name, PRI_DEFAULT, __do_fork, curr);
 
-	if (tid == TID_ERROR) {
-		return TID_ERROR;
-	}
-
 	struct thread *child = get_child_process (tid);
 
 	sema_down (&child->fork_sema);
 
 	if (child->exit_status == -1) {
-		return TID_ERROR;
+		/* File Descriptor */
+		return process_wait (tid);
 	}
 
 	return tid;
@@ -133,11 +134,10 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
 	/* 3. TODO: Allocate new PAL_USER page for the child and set result to
 	 *    TODO: NEWPAGE. */
 	/* File Descriptor */
-	newpage = palloc_get_page (PAL_USER | PAL_ZERO);
+	newpage = palloc_get_page (PAL_USER);
 	if (newpage == NULL) {
 		return false;
 	}
-
 
 	/* 4. TODO: Duplicate parent's page to the new page and
 	 *    TODO: check whether parent's page is writable or not (set WRITABLE
@@ -168,8 +168,9 @@ __do_fork (void *aux) {
 	struct thread *current = thread_current ();
 	/* TODO: somehow pass the parent_if. (i.e. process_fork()'s if_) */
 	/* File Descriptor */
-	struct intr_frame *parent_if = &parent->parent_if;
+	struct intr_frame *parent_if;
 	bool succ = true;
+	parent_if = &parent->parent_if;
 
 	/* 1. Read the cpu context to local stack. */
 	memcpy (&if_, parent_if, sizeof (struct intr_frame));
@@ -202,28 +203,24 @@ __do_fork (void *aux) {
 		goto error;
 	}
 
-	for (int i = 0; i < FDCOUNT_LIMIT; i++) {
-		struct file *file = parent->fd_table[i];
+	current->fd_table[0] = parent->fd_table[0];
+	current->fd_table[1] = parent->fd_table[1];
+
+	for (int fd = 2; fd < FDCOUNT_LIMIT; fd++) {
+		struct file *file = parent->fd_table[fd];
 
 		if (file == NULL) {
 			continue;
 		}
 
-		struct file *new_file;
-
-		if (file > 2) {
-			new_file = file_duplicate (file);
-		}
-		else {
-			new_file = file;
-		}
-
-		current->fd_table[i] = new_file;
+		current->fd_table[fd] = file_duplicate (file);
 	}
 
 	current->fd_idx = parent->fd_idx;
 
 	sema_up (&current->fork_sema);
+
+	if_.R.rax = 0;
 
 	/* Finally, switch to the newly created process. */
 	if (succ)
@@ -272,6 +269,8 @@ process_exec (void *f_name) {
 	/* Argument Passing */
 	/* If load failed, quit. */
 	if (!success) {
+		/* Argument Passing */
+		palloc_free_page (file_name);
 		return -1;
 	}
 
@@ -282,9 +281,6 @@ process_exec (void *f_name) {
 
 	/* Argument Passing */
 	// hex_dump (_if.rsp, _if.rsp, USER_STACK - (uint64_t)_if.rsp, true);
-
-	/* Argument Passing */
-	palloc_free_page (file_name);
 
 	/* Start switched process. */
 	do_iret (&_if);
@@ -343,7 +339,11 @@ process_exit (void) {
 	for (int i = 0; i < FDCOUNT_LIMIT; i++) {
 		close(i);
 	}
+
 	palloc_free_multiple (curr->fd_table, FDT_PAGES);
+
+	/* Denying Write to Executable */
+	file_close (curr->running);
 	
 	process_cleanup ();
 	
@@ -393,13 +393,19 @@ argument_stack (char **parse, int count, void **rsp) {
 struct thread 
 *get_child_process (int pid) {
 	struct thread *curr = thread_current ();
+	struct list *child_list = &curr->child_list;
+	struct list_elem *curr_elem;
 	struct list_elem *e;
 
-	for (e = list_begin (&curr->child_list); e != (&curr->child_list); e = list_next (e)) {
-		struct thread *child = list_entry (e, struct thread, child_elem);
+	if (list_empty(child_list)) {
+		return NULL;
+	}
 
-		if (child->tid == pid) {
-			return child;
+	for (e = list_begin(child_list); e != list_end(child_list); e = list_next(e))
+	{
+		struct thread *t = list_entry(e, struct thread, child_elem);
+		if (t->tid == pid) {
+			return t;
 		}
 	}
 
@@ -544,6 +550,10 @@ load (const char *file_name, struct intr_frame *if_) {
 		goto done;
 	}
 
+	/* Denying Write to Executable */
+	t->running = file;
+	file_deny_write (file);
+
 	/* Read and verify executable header. */
 	if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
 			|| memcmp (ehdr.e_ident, "\177ELF\2\1\1", 7)
@@ -623,10 +633,10 @@ load (const char *file_name, struct intr_frame *if_) {
 
 done:
 	/* We arrive here whether the load is successful or not. */
-	file_close (file);
+	/* Denying Write to Executable */
+	// file_close (file);
 	return success;
 }
-
 
 /* Checks whether PHDR describes a valid, loadable segment in
  * FILE and returns true if so, false otherwise. */
