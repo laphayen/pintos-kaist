@@ -341,11 +341,13 @@ write (int fd, const void *buffer, unsigned size) {
 /* A system call for moving the position within an open file. */
 void
 seek (int fd, unsigned position) {
-	check_address (fd);
+	if (fd < 2) {
+		return;
+	}
 
 	struct file *file_obj = process_get_file (fd);
 
-	if (fd < 2) {
+	if (file_obj == NULL) {
 		return;
 	}
 
