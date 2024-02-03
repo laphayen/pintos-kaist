@@ -26,6 +26,12 @@
 #include "vm/vm.h"
 #endif
 
+/* Dup2 */
+struct dict_elem{
+	uintptr_t key;
+	uintptr_t value;
+};
+
 static void process_cleanup (void);
 static bool load (const char *file_name, struct intr_frame *if_);
 static void initd (void *f_name);
@@ -166,6 +172,12 @@ __do_fork (void *aux) {
 	struct intr_frame if_;
 	struct thread *parent = (struct thread *) aux;
 	struct thread *current = thread_current ();
+
+	/* Dup2 */
+	const int DICTLEN = 10;
+	struct dict_elem dup_dict[10];
+	int dup_idx = 0;
+
 	/* TODO: somehow pass the parent_if. (i.e. process_fork()'s if_) */
 	/* File Descriptor */
 	struct intr_frame *parent_if;
@@ -203,24 +215,48 @@ __do_fork (void *aux) {
 		goto error;
 	}
 
-	current->fd_table[0] = parent->fd_table[0];
-	current->fd_table[1] = parent->fd_table[1];
+	// current->fd_table[0] = parent->fd_table[0];
+	// current->fd_table[1] = parent->fd_table[1];
 
-	for (int fd = 2; fd < FDCOUNT_LIMIT; fd++) {
+	for (int fd = 0; fd < FDCOUNT_LIMIT; fd++) {
 		struct file *file = parent->fd_table[fd];
+		struct file *new_file;
 
 		if (file == NULL) {
 			continue;
 		}
 
-		current->fd_table[fd] = file_duplicate (file);
+		bool found = false;
+
+		if (dup_dict[dup_idx].key == file) {
+			current->fd_table[fd] = dup_dict[dup_idx].value;
+			found = true;
+			break;
+		}
+
+		if (found) {
+			continue;
+		}
+
+		if (file > 2) {
+			new_file = file_duplicate (file);
+		}
+		else {
+			new_file = file;
+		}
+
+		current->fd_table[fd] = new_file;
+
+		if (dup_idx < DICTLEN) {
+			dup_dict[dup_idx].key = file;
+			dup_dict[dup_idx].value = new_file;
+			dup_idx++;
+		}
 	}
 
 	current->fd_idx = parent->fd_idx;
 
 	sema_up (&current->fork_sema);
-
-	if_.R.rax = 0;
 
 	/* Finally, switch to the newly created process. */
 	if (succ)
