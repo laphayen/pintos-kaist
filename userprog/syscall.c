@@ -461,6 +461,7 @@ process_close_file (int fd) {
 }
 
 /* Dup2 */
+/* A system call that duplicates file descriptors. */
 int
 dup2 (int oldfd, int newfd) {
 	if (oldfd == newfd) {
