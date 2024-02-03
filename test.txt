@@ -93,4 +93,6 @@ pass tests/threads/priority-preempt
 pass tests/threads/priority-sema
 pass tests/threads/priority-condvar
 pass tests/threads/priority-donate-chain
-All 95 tests passed.
+pass tests/userprog/dup2/dup2-complex
+pass tests/userprog/dup2/dup2-simple
+All 97 tests passed.

@@ -56,6 +56,9 @@ unsigned tell (int fd);
 void close (int fd);
 tid_t fork (const char *thread_name, struct intr_frame *f);
 
+/* Dup2 */
+int dup2 (int oldfd, int newfd);
+
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -134,6 +137,9 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 		case SYS_CLOSE:
 			close (f->R.rdi);
+			break;
+		case SYS_DUP2:
+			f->R.rax = dup2 (f->R.rdi, f->R.rsi);
 			break;
 		default:
 			exit (-1);
@@ -280,7 +286,10 @@ read (int fd, void *buffer, unsigned size) {
 	}	
 
 	if (file_obj == STDIN) {
+		/* Dup2 */
 		if (curr->stdin_count == 0) {
+			NOT_REACHED ();
+			process_close_file (fd);
 			read_count = -1;
 		}
 		else {
@@ -320,6 +329,7 @@ write (int fd, const void *buffer, unsigned size) {
 	}
 
 	if (file_obj == STDOUT) {
+		/* Dup2 */
 		if (curr->stdout_count == 0) {
 			NOT_REACHED ();
 			process_close_file (fd);
@@ -376,13 +386,32 @@ close (int fd){
 		return;
 	}
 
+	struct thread *curr = thread_current ();
 	struct file *file_obj = process_get_file (fd);
 
 	if (file_obj == NULL) {
 		return;
 	}
 	
+	if (fd == 0 || file_obj == STDIN) {
+		curr->stdin_count--;
+	}
+	else if (fd == 1 || file_obj == STDOUT) {
+		curr->stdout_count--;
+	}
+
 	process_close_file (fd);
+
+	if (fd <= 1 || file_obj <= 2) {
+		return;
+	}
+
+	if (file_obj->dup2_count == 0) {
+		file_close (file_obj);
+	}
+	else {
+		file_obj->dup2_count--;
+	}
 }
 
 /* File Descriptor*/
@@ -429,4 +458,36 @@ process_close_file (int fd) {
 	}
 
 	curr->fd_table[fd] = NULL;
+}
+
+/* Dup2 */
+/* A system call that duplicates file descriptors. */
+int
+dup2 (int oldfd, int newfd) {
+	if (oldfd == newfd) {
+		return newfd;
+	}
+
+	struct file *file_obj = process_get_file (oldfd);
+	struct thread *curr = thread_current ();
+	struct file **curr_fdt = curr->fd_table;
+
+	if (file_obj == NULL) {
+		return -1;
+	}
+
+	if (file_obj == STDIN) {
+		curr->stdin_count++;
+	}
+	else if (file_obj == STDOUT) {
+		curr->stdout_count++;
+	}
+	else {
+		file_obj->dup2_count++;
+	}
+
+	close (newfd);
+	curr_fdt[newfd] = file_obj;
+
+	return newfd;
 }

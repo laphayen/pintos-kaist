@@ -239,9 +239,10 @@ thread_create (const char *name, int priority,
 
 	/* File Descriptor */
 	t->fd_idx = 2;
+
+	/* Dup2 */
 	t->fd_table[0] = 1;
 	t->fd_table[1] = 2;
-
 	t->stdin_count = 1;
 	t->stdout_count = 1;
 
