@@ -4,12 +4,19 @@
 #include "vm/vm.h"
 #include "vm/inspect.h"
 
+/* Memory Management */
+#include "hash.h"
+
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
 void
 vm_init (void) {
 	vm_anon_init ();
 	vm_file_init ();
+
+	/* Memory Management */
+	// hash_init (vm_hash_func(vm_less_func()));
+
 #ifdef EFILESYS  /* For project 4 */
 	pagecache_init ();
 #endif
@@ -187,4 +194,23 @@ void
 supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
+}
+
+/* Memory Management */
+/* vm_entry의 vaddr을 인자값으로 hash_int ()함수를 사용해서 해시 값 반환 */
+static unsigned
+vm_hash_func (const struct hash_elem *e, void *aux) {
+	struct page *page = hash_entry (e, struct page, elem);
+	
+	return hash_bytes (&page->va, sizeof (page->va));
+}
+
+/* Memory Management */
+/* 입력된 hash_elem의 vaddr을 비교해주는 함수 */
+static bool
+vm_less_func (const struct hash_elem *a, const struct hash_elem *b, void *aux UNUSED) {
+	const struct page *page_a = hash_entry (a, struct page, hash_elem);
+	const struct page *page_b = hash_entry (b, struct page, hash_elem);
+
+	return a->va < b->va;
 }
