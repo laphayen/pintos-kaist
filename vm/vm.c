@@ -93,9 +93,9 @@ bool
 spt_insert_page (struct supplemental_page_table *spt UNUSED,
 		struct page *page UNUSED) {
 	int succ = false;
-	/* TODO: Fill this function. */
 
-	return succ;
+	/* Memory Management */
+	return insert_vm_page (&spt->pages, page);
 }
 
 void
@@ -226,4 +226,26 @@ vm_less_func (const struct hash_elem *a, const struct hash_elem *b, void *aux UN
 	const struct page *page_b = hash_entry (b, struct page, hash_elem);
 
 	return page_a->va < page_b->va;
+}
+
+/* Memory Management */
+/* supplemental_page_table에 page insert */
+bool
+insert_vm_page (struct hash *pages, struct page *p) {
+	if (!hash_insert (pages, &p->hash_elem)) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+bool
+delete_vm_page (struct hash *pages, struct page *p) {
+	if (!hash_delete (pages, &p->hash_elem)) {
+		return true;
+	}
+	else {
+		return false;
+	}
 }
