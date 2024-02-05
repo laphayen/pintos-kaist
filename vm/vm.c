@@ -6,6 +6,7 @@
 
 /* Memory Management */
 #include "hash.h"
+#include "threads/vaddr.h"
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -70,8 +71,19 @@ err:
 /* Find VA from spt and return page. On error, return NULL. */
 struct page *
 spt_find_page (struct supplemental_page_table *spt UNUSED, void *va UNUSED) {
-	struct page *page = NULL;
-	/* TODO: Fill this function. */
+	/* Memory Management */
+	struct page *page = (struct page*)malloc (sizeof (struct page));
+	struct hash_elem *spt_elem;
+
+	page->va = pg_round_down (va);
+
+	spt_elem = hash_find (&spt->pages, &page->hash_elem);
+
+	if (spt_elem == NULL) {
+		return page;
+	}
+
+	page = hash_entry (spt_elem, struct page, hash_elem);
 
 	return page;
 }
@@ -181,6 +193,7 @@ vm_do_claim_page (struct page *page) {
 /* Initialize new supplemental page table */
 void
 supplemental_page_table_init (struct supplemental_page_table *spt UNUSED) {
+	hash_init (&spt->pages, vm_hash_func, vm_less_func, NULL);	
 }
 
 /* Copy supplemental page table from src to dst */
@@ -200,7 +213,7 @@ supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
 /* vm_entry의 vaddr을 인자값으로 hash_int ()함수를 사용해서 해시 값 반환 */
 static unsigned
 vm_hash_func (const struct hash_elem *e, void *aux) {
-	struct page *page = hash_entry (e, struct page, elem);
+	struct page *page = hash_entry (e, struct page, hash_elem);
 	
 	return hash_bytes (&page->va, sizeof (page->va));
 }
@@ -212,5 +225,5 @@ vm_less_func (const struct hash_elem *a, const struct hash_elem *b, void *aux UN
 	const struct page *page_a = hash_entry (a, struct page, hash_elem);
 	const struct page *page_b = hash_entry (b, struct page, hash_elem);
 
-	return a->va < b->va;
+	return page_a->va < page_b->va;
 }
