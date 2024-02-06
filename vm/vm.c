@@ -8,6 +8,9 @@
 #include "hash.h"
 #include "threads/vaddr.h"
 
+/* Memory Management */
+struct list frame_table;
+
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
 void
@@ -108,8 +111,10 @@ spt_remove_page (struct supplemental_page_table *spt, struct page *page) {
 static struct frame *
 vm_get_victim (void) {
 	struct frame *victim = NULL;
-	 /* TODO: The policy for eviction is up to you. */
-
+	
+	/* TODO: The policy for eviction is up to you. */
+	/* Memeory Management */
+	
 	return victim;
 }
 
@@ -119,6 +124,8 @@ static struct frame *
 vm_evict_frame (void) {
 	struct frame *victim UNUSED = vm_get_victim ();
 	/* TODO: swap out the victim and return the evicted frame. */
+	/* Memory Management */
+	swap_out (victim->page);
 
 	return NULL;
 }
@@ -129,11 +136,29 @@ vm_evict_frame (void) {
  * space.*/
 static struct frame *
 vm_get_frame (void) {
-	struct frame *frame = NULL;
-	/* TODO: Fill this function. */
+	/* Memory Management */
+	struct frame *frame = (struct frame*)calloc (1, sizeof (struct frame));
+
+	if (frame == NULL) {
+		return NULL;
+	}
 
 	ASSERT (frame != NULL);
 	ASSERT (frame->page == NULL);
+
+	frame->kva = palloc_get_page (PAL_USER | PAL_ZERO);
+
+	if (frame->kva == NULL) {
+		frame = vm_evict_frame ();
+		frame->page = NULL;
+
+		return frame;
+	}
+
+	list_push_back (&frame_table, &frame->frame_elem);
+
+	frame->page = NULL;
+
 	return frame;
 }
 
@@ -240,6 +265,8 @@ insert_vm_page (struct hash *pages, struct page *p) {
 	}
 }
 
+/* Memory Management */
+/* supplemental_page_table에 page delete */
 bool
 delete_vm_page (struct hash *pages, struct page *p) {
 	if (!hash_delete (pages, &p->hash_elem)) {
@@ -249,3 +276,4 @@ delete_vm_page (struct hash *pages, struct page *p) {
 		return false;
 	}
 }
+
