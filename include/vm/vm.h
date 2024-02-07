@@ -51,6 +51,7 @@ struct page {
 	/* Your implementation */
 	/* Mamory Management */
 	struct hash_elem hash_elem;
+	bool writable;
 
 	/* Per-type data are binded into the union.
 	 * Each function automatically detects the current union */
