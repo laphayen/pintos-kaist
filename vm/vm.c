@@ -121,8 +121,8 @@ static struct frame *
 vm_get_victim (void) {
 	struct frame *victim = NULL;
 	
-	/* TODO: The policy for eviction is up to you. */
 	/* Memeory Management */
+	/* TODO: The policy for eviction is up to you. */
 	victim = list_entry (list_pop_front (&frame_table), struct frame, frame_elem);
 	
 	return victim;
@@ -181,8 +181,12 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 		bool user UNUSED, bool write UNUSED, bool not_present UNUSED) {
 	struct supplemental_page_table *spt UNUSED = &thread_current ()->spt;
 	struct page *page = NULL;
+	
+	/* Memory Management */
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
+	page = spt_find_page (spt, addr);
+	
 
 	return vm_do_claim_page (page);
 }
@@ -202,6 +206,11 @@ vm_claim_page (void *va UNUSED) {
 
 	/* Memory Management */
 	/* TODO: Fill this function */
+	struct supplemental_page_table *spt = &thread_current ()->spt;
+	page = spt_find_page (spt, va);
+	if (page == NULL) {
+		return false;
+	}
 
 	return vm_do_claim_page (page);
 }
@@ -210,17 +219,24 @@ vm_claim_page (void *va UNUSED) {
 static bool
 vm_do_claim_page (struct page *page) {
 	struct frame *frame = vm_get_frame ();
+	
+	/* Memory Management */
+	struct thread *curr = thread_current ();
+	bool writable;
+	bool succ;
 
 	/* Set links */
 	frame->page = page;
 	page->frame = frame;
 
-	/* TODO: Insert page table entry to map page's VA to frame's PA. */
 	/* Memory Management */
-	struct thread *curr = thread_current ();
-	// pml4_set_page (curr->pml4, page->va, frame->kva, page->writable);
+	/* TODO: Insert page table entry to map page's VA to frame's PA. */
+	writable = page->writable;
+	pml4_set_page (curr->pml4, page->va, frame->kva, writable);
 	
-	return swap_in (page, frame->kva);
+	succ = swap_in (page, frame->kva);
+
+	return succ;
 }
 
 /* Initialize new supplemental page table */
