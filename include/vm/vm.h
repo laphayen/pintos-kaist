@@ -93,7 +93,7 @@ struct page_operations {
 struct supplemental_page_table {
 
 	/* Memory Management */
-	struct hash pages;
+	struct hash hash_page;
 
 };
 
