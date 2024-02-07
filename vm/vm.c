@@ -8,9 +8,6 @@
 #include "hash.h"
 #include "threads/vaddr.h"
 
-/* Memory Management */
-struct list frame_table;
-
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
 void
@@ -80,7 +77,7 @@ spt_find_page (struct supplemental_page_table *spt UNUSED, void *va UNUSED) {
 
 	page->va = pg_round_down (va);
 
-	spt_elem = hash_find (&spt->pages, &page->hash_elem);
+	spt_elem = hash_find (&spt->hash_page, &page->hash_elem);
 
 	if (spt_elem == NULL) {
 		return page;
@@ -98,7 +95,16 @@ spt_insert_page (struct supplemental_page_table *spt UNUSED,
 	int succ = false;
 
 	/* Memory Management */
-	return insert_vm_page (&spt->pages, page);
+	struct hash_elem *e = hash_find (&spt->hash_page, &page->hash_elem);
+	if (e != NULL) {
+		return succ;
+	}
+
+	hash_insert (&spt->hash_page, &page->hash_elem);
+
+	succ = true;
+
+	return succ;
 }
 
 void
@@ -137,27 +143,18 @@ vm_evict_frame (void) {
 static struct frame *
 vm_get_frame (void) {
 	/* Memory Management */
-	struct frame *frame = (struct frame*)calloc (1, sizeof (struct frame));
+	struct frame *frame = NULL;
+	void *kva = palloc_get_page (PAL_USER);
 
-	if (frame == NULL) {
-		return NULL;
+	if (kva == NULL) {
+		frame = vm_evict_frame ();
+	}
+	else {
+		frame = malloc (sizeof (struct frame));
+		frame->kva = kva;
 	}
 
 	ASSERT (frame != NULL);
-	ASSERT (frame->page == NULL);
-
-	frame->kva = palloc_get_page (PAL_USER | PAL_ZERO);
-
-	if (frame->kva == NULL) {
-		frame = vm_evict_frame ();
-		frame->page = NULL;
-
-		return frame;
-	}
-
-	list_push_back (&frame_table, &frame->frame_elem);
-
-	frame->page = NULL;
 
 	return frame;
 }
@@ -196,6 +193,8 @@ vm_dealloc_page (struct page *page) {
 bool
 vm_claim_page (void *va UNUSED) {
 	struct page *page = NULL;
+
+	/* Memory Management */
 	/* TODO: Fill this function */
 
 	return vm_do_claim_page (page);
@@ -211,14 +210,17 @@ vm_do_claim_page (struct page *page) {
 	page->frame = frame;
 
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
-
+	/* Memory Management */
+	struct thread *curr = thread_current ();
+	// pml4_set_page (curr->pml4, page->va, frame->kva, page->writable);
+	
 	return swap_in (page, frame->kva);
 }
 
 /* Initialize new supplemental page table */
 void
 supplemental_page_table_init (struct supplemental_page_table *spt UNUSED) {
-	hash_init (&spt->pages, vm_hash_func, vm_less_func, NULL);	
+	hash_init (&spt->hash_page, vm_hash_func, vm_less_func, NULL);	
 }
 
 /* Copy supplemental page table from src to dst */
