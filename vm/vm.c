@@ -134,7 +134,7 @@ vm_get_victim (void) {
 	/* Memeory Management */
 	/* TODO: The policy for eviction is up to you. */
 	victim = list_entry (list_pop_front (&frame_table), struct frame, frame_elem);
-	
+
 	return victim;
 }
 
@@ -143,7 +143,7 @@ vm_get_victim (void) {
 static struct frame *
 vm_evict_frame (void) {
 	struct frame *victim UNUSED = vm_get_victim ();
-	
+
 	/* Memory Management */
 	/* TODO: swap out the victim and return the evicted frame. */
 	swap_out (victim->page);
@@ -233,7 +233,6 @@ vm_do_claim_page (struct page *page) {
 	/* Memory Management */
 	struct thread *curr = thread_current ();
 	bool writable;
-	bool succ;
 
 	/* Set links */
 	frame->page = page;
@@ -243,10 +242,8 @@ vm_do_claim_page (struct page *page) {
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
 	writable = page->writable;
 	pml4_set_page (curr->pml4, page->va, frame->kva, writable);
-	
-	succ = swap_in (page, frame->kva);
 
-	return succ;
+	return swap_in (page, frame->kva);
 }
 
 /* Initialize new supplemental page table */
