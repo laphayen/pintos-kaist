@@ -61,12 +61,32 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 
 	/* Check wheter the upage is already occupied or not. */
 	if (spt_find_page (spt, upage) == NULL) {
+		/* Memory Management */
 		/* TODO: Create the page, fetch the initialier according to the VM type,
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
 		 * TODO: should modify the field after calling the uninit_new. */
+		struct page *page = (struct page*)malloc (sizeof (struct page));
+		if (!page) {
+			return false;
+		}
+
+		if (type == VM_ANON) {
+			uninit_new (page, upage, init, type, aux, anon_initializer);		
+		}
+		else if (type == VM_FILE) {
+			uninit_new (page, upage, init, type, aux, file_backed_initializer);
+		}
+
+		page->writable = writable;
+
+		if (!spt_insert_page (spt, page)) {
+			goto err;
+		}
 
 		/* TODO: Insert the page into the spt. */
 	}
+
+	return true;
 err:
 	return false;
 }
@@ -83,10 +103,11 @@ spt_find_page (struct supplemental_page_table *spt UNUSED, void *va UNUSED) {
 	spt_elem = hash_find (&spt->hash_page, &page->hash_elem);
 
 	if (spt_elem == NULL) {
-		return page;
+		return NULL;
 	}
-
-	page = hash_entry (spt_elem, struct page, hash_elem);
+	else {
+		page = hash_entry (spt_elem, struct page, hash_elem);
+	}
 
 	return page;
 }
