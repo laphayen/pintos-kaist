@@ -3,6 +3,9 @@
 #include <stdbool.h>
 #include "threads/palloc.h"
 
+/* Memory Management */
+#include "hash.h"
+
 enum vm_type {
 	/* page not initialized */
 	VM_UNINIT = 0,
@@ -46,6 +49,9 @@ struct page {
 	struct frame *frame;   /* Back reference for frame */
 
 	/* Your implementation */
+	/* Mamory Management */
+	struct hash_elem hash_elem;
+	bool writable;
 
 	/* Per-type data are binded into the union.
 	 * Each function automatically detects the current union */
@@ -63,6 +69,9 @@ struct page {
 struct frame {
 	void *kva;
 	struct page *page;
+
+	/* Memory Management */
+	struct list_elem frame_elem;
 };
 
 /* The function table for page operations.
@@ -85,6 +94,10 @@ struct page_operations {
  * We don't want to force you to obey any specific design for this struct.
  * All designs up to you for this. */
 struct supplemental_page_table {
+
+	/* Memory Management */
+	struct hash hash_page;
+
 };
 
 #include "threads/thread.h"
@@ -108,5 +121,11 @@ bool vm_alloc_page_with_initializer (enum vm_type type, void *upage,
 void vm_dealloc_page (struct page *page);
 bool vm_claim_page (void *va);
 enum vm_type page_get_type (struct page *page);
+
+/* Memory Management */
+static unsigned vm_hash_func (const struct hash_elem *e, void *aux);
+static bool vm_less_func (const struct hash_elem *a, const struct hash_elem *b, void *aux);
+bool vm_insert_page (struct hash *pages, struct page *p);
+bool vm_delete_page (struct hash *pages, struct page *p);
 
 #endif  /* VM_VM_H */
