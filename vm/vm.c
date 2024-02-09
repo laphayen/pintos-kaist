@@ -23,6 +23,7 @@ vm_init (void) {
 	register_inspect_intr ();
 	/* DO NOT MODIFY UPPER LINES. */
 	/* TODO: Your code goes here. */
+	list_init (&frame_table);
 }
 
 /* Get the type of the page. This function is useful if you want to know the
@@ -61,6 +62,25 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
 		 * TODO: should modify the field after calling the uninit_new. */
 		/* TODO: Insert the page into the spt. */
+		struct page *page = (struct page*)malloc (sizeof (struct page));
+		if (!page) {
+			return false;
+		}
+
+		if (type == VM_ANON) {
+			uninit_new (page, upage, init, type, aux, anon_initializer);		
+		}
+		else if (type == VM_FILE) {
+			uninit_new (page, upage, init, type, aux, file_backed_initializer);
+		}
+
+		page->writable = writable;
+
+		if (!spt_insert_page (spt, page)) {
+			goto err;
+		}
+
+		return true;
 	}
 err:
 	return false;
