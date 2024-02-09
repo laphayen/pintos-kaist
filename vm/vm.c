@@ -232,7 +232,6 @@ vm_do_claim_page (struct page *page) {
 	
 	/* Memory Management */
 	struct thread *curr = thread_current ();
-	bool writable;
 
 	/* Set links */
 	frame->page = page;
@@ -240,8 +239,7 @@ vm_do_claim_page (struct page *page) {
 
 	/* Memory Management */
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
-	writable = page->writable;
-	pml4_set_page (curr->pml4, page->va, frame->kva, writable);
+	pml4_set_page (curr->pml4, page->va, frame->kva, page->writable);
 
 	return swap_in (page, frame->kva);
 }
