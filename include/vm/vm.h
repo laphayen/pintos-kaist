@@ -69,6 +69,8 @@ struct page {
 struct frame {
 	void *kva;
 	struct page *page;
+
+	/* Memory Management */
 	struct list_elem frame_elem;
 };
 
