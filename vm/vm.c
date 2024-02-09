@@ -17,10 +17,6 @@ void
 vm_init (void) {
 	vm_anon_init ();
 	vm_file_init ();
-
-	/* Memory Management */
-	// hash_init (vm_hash_func(vm_less_func()));
-
 #ifdef EFILESYS  /* For project 4 */
 	pagecache_init ();
 #endif
@@ -61,32 +57,12 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 
 	/* Check wheter the upage is already occupied or not. */
 	if (spt_find_page (spt, upage) == NULL) {
-		/* Memory Management */
 		/* TODO: Create the page, fetch the initialier according to the VM type,
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
 		 * TODO: should modify the field after calling the uninit_new. */
-		struct page *page = (struct page*)malloc (sizeof (struct page));
-		if (!page) {
-			return false;
-		}
-
-		if (type == VM_ANON) {
-			uninit_new (page, upage, init, type, aux, anon_initializer);		
-		}
-		else if (type == VM_FILE) {
-			uninit_new (page, upage, init, type, aux, file_backed_initializer);
-		}
-
-		page->writable = writable;
-
-		if (!spt_insert_page (spt, page)) {
-			goto err;
-		}
-
+		
 		/* TODO: Insert the page into the spt. */
 	}
-
-	return true;
 err:
 	return false;
 }
@@ -271,7 +247,7 @@ supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
 }
 
 /* Memory Management */
-/* vm_entry의 vaddr을 인자값으로 hash_int ()함수를 사용해서 해시 값 반환 */
+/* Returning the hash value using the hash_int() function with vm_entry's vaddr as an argument. */
 static unsigned
 vm_hash_func (const struct hash_elem *e, void *aux) {
 	struct page *page = hash_entry (e, struct page, hash_elem);
@@ -280,7 +256,7 @@ vm_hash_func (const struct hash_elem *e, void *aux) {
 }
 
 /* Memory Management */
-/* 입력된 hash_elem의 vaddr을 비교해주는 함수 */
+/* A function that compares the vaddr of the input hash_elem. */
 static bool
 vm_less_func (const struct hash_elem *a, const struct hash_elem *b, void *aux UNUSED) {
 	const struct page *page_a = hash_entry (a, struct page, hash_elem);
@@ -290,7 +266,7 @@ vm_less_func (const struct hash_elem *a, const struct hash_elem *b, void *aux UN
 }
 
 /* Memory Management */
-/* supplemental_page_table에 page insert */
+/* Inserting a page into the supplemental page table */
 bool
 vm_insert_page (struct hash *pages, struct page *p) {
 	if (!hash_insert (pages, &p->hash_elem)) {
@@ -302,7 +278,7 @@ vm_insert_page (struct hash *pages, struct page *p) {
 }
 
 /* Memory Management */
-/* supplemental_page_table에 page delete */
+/* Deleting a page from the supplemental page table */
 bool
 vm_delete_page (struct hash *pages, struct page *p) {
 	if (!hash_delete (pages, &p->hash_elem)) {
