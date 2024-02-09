@@ -123,7 +123,7 @@ enum vm_type page_get_type (struct page *page);
 /* Memory Management */
 static unsigned vm_hash_func (const struct hash_elem *e, void *aux);
 static bool vm_less_func (const struct hash_elem *a, const struct hash_elem *b, void *aux);
-bool insert_vm_page (struct hash *pages, struct page *p);
-bool delete_vm_page (struct hash *pages, struct page *p);
+bool vm_insert_page (struct hash *pages, struct page *p);
+bool vm_delete_page (struct hash *pages, struct page *p);
 
 #endif  /* VM_VM_H */
