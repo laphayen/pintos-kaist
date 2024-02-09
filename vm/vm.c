@@ -117,7 +117,7 @@ bool
 spt_insert_page (struct supplemental_page_table *spt UNUSED,
 		struct page *page UNUSED) {
 	/* Memory Management */
-	return insert_vm_page (&spt->hash_page, page);
+	return vm_insert_page (&spt->hash_page, page);
 }
 
 void
@@ -159,11 +159,18 @@ static struct frame *
 vm_get_frame (void) {
 	/* Memory Management */
 	struct frame *frame = (struct frame *)malloc (sizeof (struct frame));
-	frame->kva = palloc_get_page (PAL_USER);
+
+	if (frame == NULL || frame->kva) {
+		PANIC ("todo");
+		return NULL;
+	}
+
+	frame->kva = palloc_get_page (PAL_USER | PAL_ZERO);
 
 	if (frame->kva == NULL) {
 		frame = vm_evict_frame ();
 		frame->page = NULL;
+		return frame;
 	}
 
 	list_push_back (&frame_table, &frame->frame_elem);
@@ -285,7 +292,7 @@ vm_less_func (const struct hash_elem *a, const struct hash_elem *b, void *aux UN
 /* Memory Management */
 /* supplemental_page_table에 page insert */
 bool
-insert_vm_page (struct hash *pages, struct page *p) {
+vm_insert_page (struct hash *pages, struct page *p) {
 	if (!hash_insert (pages, &p->hash_elem)) {
 		return true;
 	}
@@ -297,7 +304,7 @@ insert_vm_page (struct hash *pages, struct page *p) {
 /* Memory Management */
 /* supplemental_page_table에 page delete */
 bool
-delete_vm_page (struct hash *pages, struct page *p) {
+vm_delete_page (struct hash *pages, struct page *p) {
 	if (!hash_delete (pages, &p->hash_elem)) {
 		return true;
 	}
