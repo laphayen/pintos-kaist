@@ -53,6 +53,9 @@ struct page {
 	struct hash_elem hash_elem;
 	bool writable;
 
+	/* Anonymous Page */
+	int page_count;
+
 	/* Per-type data are binded into the union.
 	 * Each function automatically detects the current union */
 	union {
