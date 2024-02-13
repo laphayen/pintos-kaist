@@ -824,28 +824,28 @@ install_page (void *upage, void *kpage, bool writable) {
 
 static bool
 lazy_load_segment (struct page *page, void *aux) {
+	/* Anonymous Page */
 	/* TODO: Load the segment from the file */
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */
-	struct lazy_load_info *lazy_load_info = (struct lazy_load_aux *) aux;
-	struct file *file = lazy_load_info->file;
+	struct lazy_load_aux *load_aux = (struct lazy_load_aux *)aux;
 
-	size_t read_bytes = lazy_load_info->page_read_bytes;
-	size_t zero_bytes = lazy_load_info->page_zero_bytes;
-	size_t offset = lazy_load_info->offset;
+	file_seek (load_aux->file, load_aux->offset);
 
-	file_seek (file, offset);
+	size_t page_read_bytes = load_aux->read_bytes;
+	size_t page_zero_bytes = load_aux->zero_bytes;
 
-	void *kva = page->frame->page;
-	if (file_read (file, kva, read_bytes)!= (int) read_bytes) {
-		free (lazy_load_info);
+	if (page == NULL) {
+		return false;
+	} 
+
+	if (file_read (load_aux->file, page->frame->kva, page_read_bytes) != (int)page_read_bytes) {
+		palloc_free_page (page->frame->kva);
+
 		return false;
 	}
 
-	memset (kva + read_bytes, 0, zero_bytes);
-	free (lazy_load_info);
-
-	file_seek (file, offset);
+	memset (page->frame->kva + page_read_bytes, 0, page_zero_bytes);
 
 	return true;
 }
@@ -898,10 +898,17 @@ setup_stack (struct intr_frame *if_) {
 	bool success = false;
 	void *stack_bottom = (void *) (((uint8_t *) USER_STACK) - PGSIZE);
 
+	/* Anonymous Page */
 	/* TODO: Map the stack on stack_bottom and claim the page immediately.
 	 * TODO: If success, set the rsp accordingly.
 	 * TODO: You should mark the page is stack. */
 	/* TODO: Your code goes here */
+	if (vm_alloc_page (VM_ANON | VM_MARKER_0, stack_bottom, 1)) {
+		if (vm_claim_page (stack_bottom)) {
+			if_->rsp = USER_STACK;
+			success = true;
+		}
+	}
 
 	return success;
 }
