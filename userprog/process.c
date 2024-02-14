@@ -883,6 +883,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		/* Anonymous Page */
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
 		struct lazy_load_aux *aux = (struct lazy_load_aux *)malloc(sizeof(struct lazy_load_aux));
+		aux -> file = file;
         aux -> ofs = read_start;
         aux -> read_bytes = page_read_bytes;
         aux -> zero_bytes = page_zero_bytes;
