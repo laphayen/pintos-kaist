@@ -67,21 +67,22 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 			return false;
 		}
 
-		if (type == VM_ANON) {
-			uninit_new (page, upage, init, type, aux, anon_initializer);		
+		bool (*page_initailizer) (struct page *, enum vm_type, void *);
+
+		switch (VM_TYPE (type)) {
+		case VM_ANON:
+			page_initailizer = anon_initializer;
+			break;
+		case VM_FILE:
+			page_initailizer = file_backed_initializer;
+			break;
 		}
-		else if (type == VM_FILE) {
-			uninit_new (page, upage, init, type, aux, file_backed_initializer);
-		}
+
+		uninit_new (page, upage, init, type, aux, page_initailizer);
 
 		page->writable = writable;
-		spt_insert_page (spt, page);
 
-		if (!spt_insert_page (spt, page)) {
-			goto err;
-		}
-
-		return true;
+		return spt_insert_page (spt, page);;
 	}
 err:
 	return false;
