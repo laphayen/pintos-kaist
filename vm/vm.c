@@ -195,14 +195,30 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 		bool user UNUSED, bool write UNUSED, bool not_present UNUSED) {
 	struct supplemental_page_table *spt UNUSED = &thread_current ()->spt;
 	struct page *page = NULL;
-	
+
+	if (addr == NULL) {
+		return false;
+	}
+
 	/* Memory Management */
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
-	page = spt_find_page (spt, addr);
-	
 
-	return vm_do_claim_page (page);
+	if (not_present) {
+		page = spt_find_page(spt, addr);
+
+		if (page == NULL) {
+			return false;
+		}
+
+		if (write == 1 && page->writable == 0) {
+			return false;
+		}
+
+		return vm_do_claim_page (page);
+	}
+
+	return false;
 }
 
 /* Free the page.
