@@ -156,13 +156,12 @@ static struct frame *
 vm_get_frame (void) {
 	/* Memory Management */
 	struct frame *frame = (struct frame *)malloc (sizeof (struct frame));
-
-	if (frame == NULL || frame->kva) {
-		PANIC ("todo");
-		return NULL;
-	}
-
+	
 	frame->kva = palloc_get_page (PAL_USER | PAL_ZERO);
+
+	if (frame == NULL) {
+		PANIC ("todo");
+	}
 
 	if (frame->kva == NULL) {
 		frame = vm_evict_frame ();
