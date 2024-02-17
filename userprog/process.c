@@ -884,10 +884,11 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
 		struct load_aux *load_aux = (struct load_aux *)malloc(sizeof(struct load_aux));
 		load_aux->file = file;
-        load_aux->ofs = ofs;
-        load_aux->read_bytes = page_read_bytes;
-        load_aux->zero_bytes = page_zero_bytes;
+		load_aux->ofs = ofs;
+		load_aux->read_bytes = page_read_bytes;
+		load_aux->zero_bytes = page_zero_bytes;
 
+		/* Anonymous Page */
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
 					writable, lazy_load_segment, load_aux))
 			return false;
