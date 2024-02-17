@@ -32,6 +32,14 @@ struct dict_elem{
 	uintptr_t value;
 };
 
+/* Anonymous Page */
+struct load_aux {
+	struct file *file;
+	off_t ofs;
+	uint32_t read_bytes;
+	uint32_t zero_bytes;
+};
+
 static void process_cleanup (void);
 static bool load (const char *file_name, struct intr_frame *if_);
 static void initd (void *f_name);
@@ -833,13 +841,13 @@ lazy_load_segment (struct page *page, void *aux) {
 
 	file_seek(load_aux->file, load_aux->ofs);
 
-	if (file_read (load_aux->file, page->frame->kva, load_aux->page_read_bytes) != (int)(load_aux->page_read_bytes)) {
+	if (file_read (load_aux->file, page->frame->kva, load_aux->read_bytes) != (int)(load_aux->read_bytes)) {
 		palloc_free_page (page->frame->kva);
 
 		return false;
 	}
 
-	memset (page->frame->kva + load_aux->page_read_bytes, 0, load_aux->page_zero_bytes);
+	memset (page->frame->kva + load_aux->read_bytes, 0, load_aux->zero_bytes);
 
 	return true;
 }
