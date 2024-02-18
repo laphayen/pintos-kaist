@@ -103,14 +103,6 @@ struct supplemental_page_table {
 
 };
 
-/* Anonymous Page */
-struct lazy_load_info {
-	struct file *file;
-	size_t page_read_bytes;
-	size_t page_zero_bytes;
-	off_t offset;
-};
-
 #include "threads/thread.h"
 void supplemental_page_table_init (struct supplemental_page_table *spt);
 bool supplemental_page_table_copy (struct supplemental_page_table *dst,
