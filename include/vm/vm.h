@@ -130,5 +130,6 @@ static unsigned vm_hash_func (const struct hash_elem *e, void *aux);
 static bool vm_less_func (const struct hash_elem *a, const struct hash_elem *b, void *aux);
 bool vm_insert_page (struct hash *pages, struct page *p);
 bool vm_delete_page (struct hash *pages, struct page *p);
+void hash_page_destroy (struct hash_elem *elem, void *aux);
 
 #endif  /* VM_VM_H */
