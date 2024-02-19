@@ -153,9 +153,18 @@ syscall_handler (struct intr_frame *f UNUSED) {
 void
 check_address (void *addr) {
 	struct thread *curr = thread_current ();
-	if (addr == NULL || is_kernel_vaddr(addr) || pml4_get_page(curr->pml4, addr) == NULL) {
-		exit(-1);
+	
+	if (!is_user_vaddr (addr) || addr == NULL) {
+		exit (-1);
 	}
+
+	#ifdef VM
+	if (pml4_get_page (&curr->pml4, addr) == NULL) {
+		if (spt_find_page (&curr->spt, addr) == NULL) {
+			exit (-1);
+		}
+	}
+	#endif
 }
 
 /* System Call */
