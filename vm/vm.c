@@ -8,6 +8,9 @@
 #include "hash.h"
 #include "threads/vaddr.h"
 
+/* Anonymous Page */
+#include "userprog/process.h"
+
 /* Memory management */
 struct list frame_table;
 
@@ -284,36 +287,39 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 	while (hash_next (&iter)) {
 		struct page *parent_page = hash_entry (hash_cur (&iter), struct page, hash_elem);
 		enum vm_type parent_type = VM_TYPE (parent_page->operations->type);
+		void *upage = parent_page->va;
+		bool writable = parent_page->writable;
 
 		if (parent_type == VM_UNINIT) {
-			if (!vm_alloc_page_with_initializer (parent_page->uninit.type, parent_page->va, parent_page->writable, parent_page->uninit.init, parent_page->uninit.aux)) {
+			vm_initializer *init = parent_page->uninit.init;
+			void *aux = parent_page->uninit.aux;
+			vm_alloc_page_with_initializer (VM_ANON, upage, writable, init, aux);
+			continue;
+		}
+		else {
+			if (!vm_alloc_page (parent_type, upage, writable)) {
 				return false;
 			}
-			else {
-				if (parent_type & VM_MARKER_0) {
-					setup_stack (curr->tf);
-				}
-				else {
-					if (!vm_alloc_page (parent_type, parent_page->va, parent_page->writable)) {
-						return false;
-					}
-					if (!vm_claim_page (parent_page->va)) {
-						return false;
-					}
-				}
+
+			if (!vm_claim_page (upage)) {
+				return false;
 			}
-			struct page *child_page = spt_find_page (dst, parent_page->va);
-			memcpy (child_page->frame->kva, parent_page->frame->kva, PGSIZE);
 		}
+
+		struct page *child_page = spt_find_page (dst, upage);
+		memcpy (child_page->frame->kva, parent_page->frame->kva, PGSIZE);
 	}
+
 	return true;
 }
 
 /* Free the resource hold by the supplemental page table */
 void
 supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
+	/* Anonymous Page */
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
+	hash_clear (&spt->hash_page, hash_page_destroy);
 }
 
 /* Memory Management */
@@ -359,3 +365,10 @@ vm_delete_page (struct hash *pages, struct page *p) {
 	}
 }
 
+/* Anonymous Page */
+void 
+hash_page_destroy (struct hash_elem *elem, void *aux) {
+	struct page *page = hash_entry (elem, struct page, hash_elem);
+	destroy (page);
+	free (page);
+}
