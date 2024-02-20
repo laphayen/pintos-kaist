@@ -839,7 +839,7 @@ lazy_load_segment (struct page *page, void *aux) {
 	
 	struct load_aux *load_aux = (struct load_aux *)aux;
 
-	file_seek(load_aux->file, load_aux->ofs);
+	file_seek (load_aux->file, load_aux->ofs);
 
 	if (file_read (load_aux->file, page->frame->kva, load_aux->read_bytes) != (int)(load_aux->read_bytes)) {
 		palloc_free_page (page->frame->kva);
