@@ -296,14 +296,13 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 			vm_alloc_page_with_initializer (VM_ANON, upage, writable, init, aux);
 			continue;
 		}
-		else {
-			if (!vm_alloc_page (parent_type, upage, writable)) {
-				return false;
-			}
+		
+		if (!vm_alloc_page (parent_type, upage, writable)) {
+			return false;
+		}
 
-			if (!vm_claim_page (upage)) {
-				return false;
-			}
+		if (!vm_claim_page (upage)) {
+			return false;
 		}
 
 		struct page *child_page = spt_find_page (dst, upage);
