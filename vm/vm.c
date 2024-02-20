@@ -206,7 +206,6 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 	/* Memory Management */
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
-
 	if (not_present) {
 		page = spt_find_page(spt, addr);
 
@@ -286,7 +285,7 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 
 	while (hash_next (&iter)) {
 		struct page *parent_page = hash_entry (hash_cur (&iter), struct page, hash_elem);
-		enum vm_type parent_type = VM_TYPE (parent_page->operations->type);
+		enum vm_type parent_type = parent_page->operations->type;
 		void *upage = parent_page->va;
 		bool writable = parent_page->writable;
 
