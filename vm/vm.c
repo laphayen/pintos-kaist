@@ -149,7 +149,7 @@ vm_evict_frame (void) {
 	/* TODO: swap out the victim and return the evicted frame. */
 	swap_out (victim->page);
 
-	return NULL;
+	return victim;
 }
 
 /* palloc() and get frame. If there is no available page, evict the page
