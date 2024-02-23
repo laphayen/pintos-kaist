@@ -324,8 +324,9 @@ read (int fd, void *buffer, unsigned size) {
 	}
 	else {
 		read_count = file_read (file_obj, buffer, size);
-		lock_release (&filesys_lock);
 	}
+
+	lock_release (&filesys_lock);
 
 	return read_count;
 }
