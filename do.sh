@@ -153,4 +153,4 @@ make
 cd build
 source ../../activate
 
-$ARGS_NONE
+$SWAP_FORK
