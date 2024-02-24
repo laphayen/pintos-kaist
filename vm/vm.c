@@ -10,6 +10,7 @@
 
 /* Anonymous Page */
 #include "userprog/process.h"
+#include "threads/vaddr.h"
 
 /* Memory management */
 struct list frame_table;
@@ -67,9 +68,6 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 		 * TODO: should modify the field after calling the uninit_new. */
 		/* TODO: Insert the page into the spt. */
 		struct page *page = (struct page*)malloc (sizeof (struct page));
-		if (!page) {
-			return false;
-		}
 
 		bool (*page_initailizer) (struct page *, enum vm_type, void *);
 
@@ -200,6 +198,10 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 	struct page *page = NULL;
 
 	if (addr == NULL) {
+		return false;
+	}
+
+	if (is_kernel_vaddr (addr)) {
 		return false;
 	}
 
