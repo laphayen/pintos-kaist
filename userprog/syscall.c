@@ -287,7 +287,7 @@ read (int fd, void *buffer, unsigned size) {
 
 	char *read_buffer = (char *)buffer;
 	struct thread *curr = thread_current ();
-	struct file *file_obj = process_get_file (fd);
+	struct file *file_obj;
 	int read_count;
 
 	if (file_obj == NULL || file_obj == STDOUT) {
@@ -316,6 +316,7 @@ read (int fd, void *buffer, unsigned size) {
 	}
 	else {
 		lock_acquire (&filesys_lock);
+		file_obj = process_get_file (fd);
 		read_count = file_read (file_obj, buffer, size);
 		lock_release (&filesys_lock);
 	}
