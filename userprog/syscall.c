@@ -290,27 +290,31 @@ read (int fd, void *buffer, unsigned size) {
 	struct file *file_obj = process_get_file (fd);
 	int read_count;
 
-	lock_acquire (&filesys_lock);
+	if (file_obj == NULL || file_obj == STDOUT) {
+		return -1;
+	}	
 
-	if (fd == STDIN) {
-		for (int i = 0; i < size; i++) {
-			char key = input_getc ();
-			read_count++;
+	if (file_obj == STDIN) {
+		/* Dup2 */
+		if (curr->stdin_count == 0) {
+			NOT_REACHED ();
+			process_close_file (fd);
+			read_count = -1;
 		}
-
-		lock_release (&filesys_lock);
+		else {
+			char key;
+			int i;
+			for (i = 0; i < size; i++) {
+				key = input_getc ();
+				*read_buffer++ = key;
+				if (key == '\0') {
+					break;
+				}
+			}
+			read_count = i;
+		}
 	}
 	else {
-		if (fd < 2) {
-			lock_release (&filesys_lock);
-			return -1;
-		}
-
-		if (file_obj == NULL) {
-			lock_release (&filesys_lock);
-			return -1;
-		}
-
 		lock_acquire (&filesys_lock);
 		read_count = file_read (file_obj, buffer, size);
 		lock_release (&filesys_lock);
