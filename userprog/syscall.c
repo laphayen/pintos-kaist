@@ -302,6 +302,8 @@ read (int fd, void *buffer, unsigned size) {
 			read_count = -1;
 		}
 		else {
+			lock_acquire (&filesys_lock);
+			
 			char key;
 			int i;
 			for (i = 0; i < size; i++) {
@@ -312,11 +314,13 @@ read (int fd, void *buffer, unsigned size) {
 				}
 			}
 			read_count = i;
+
+			lock_release (&filesys_lock);
 		}
 	}
 	else {
-		lock_acquire (&filesys_lock);
 		file_obj = process_get_file (fd);
+		lock_acquire (&filesys_lock);
 		read_count = file_read (file_obj, buffer, size);
 		lock_release (&filesys_lock);
 	}
