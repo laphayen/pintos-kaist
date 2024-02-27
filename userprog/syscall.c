@@ -285,12 +285,16 @@ int
 read (int fd, void *buffer, unsigned size) {
 	check_address(buffer);
 
-	char *read_buffer = (char *)buffer;
+	unsigned char *read_buffer = (char *)buffer;
 	struct thread *curr = thread_current ();
-	struct file *file_obj;
+	struct file *file_obj = process_get_file (fd);
 	int read_count;
 
-	if (file_obj == NULL || file_obj == STDOUT) {
+	if (file_obj == NULL) {
+		return -1;
+	}
+
+	if (file_obj == STDOUT) {
 		return -1;
 	}	
 
@@ -302,24 +306,17 @@ read (int fd, void *buffer, unsigned size) {
 			read_count = -1;
 		}
 		else {
-			lock_acquire (&filesys_lock);
-			
 			char key;
-			int i;
-			for (i = 0; i < size; i++) {
+			for (read_count = 0; read_count < size; read_count++) {
 				key = input_getc ();
 				*read_buffer++ = key;
 				if (key == '\0') {
 					break;
 				}
 			}
-			read_count = i;
-
-			lock_release (&filesys_lock);
 		}
 	}
 	else {
-		file_obj = process_get_file (fd);
 		lock_acquire (&filesys_lock);
 		read_count = file_read (file_obj, buffer, size);
 		lock_release (&filesys_lock);
