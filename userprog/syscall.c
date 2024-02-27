@@ -153,9 +153,19 @@ syscall_handler (struct intr_frame *f UNUSED) {
 void
 check_address (void *addr) {
 	struct thread *curr = thread_current ();
-	if (addr == NULL || is_kernel_vaddr(addr) || pml4_get_page(curr->pml4, addr) == NULL) {
-		exit(-1);
+	
+	/* Anonymous Page */
+	if (!is_user_vaddr (addr) || addr == NULL) {
+		exit (-1);
 	}
+
+	#ifdef VM
+	if (pml4_get_page (&curr->pml4, addr) == NULL) {
+		if (spt_find_page (&curr->spt, addr) == NULL) {
+			exit (-1);
+		}
+	}
+	#endif
 }
 
 /* System Call */
@@ -276,12 +286,16 @@ int
 read (int fd, void *buffer, unsigned size) {
 	check_address(buffer);
 
-	unsigned char *read_buffer = buffer;
+	unsigned char *read_buffer = (char *)buffer;
 	struct thread *curr = thread_current ();
 	struct file *file_obj = process_get_file (fd);
 	int read_count;
 
-	if (file_obj == NULL || file_obj == STDOUT) {
+	if (file_obj == NULL) {
+		return -1;
+	}
+
+	if (file_obj == STDOUT) {
 		return -1;
 	}	
 
@@ -294,15 +308,13 @@ read (int fd, void *buffer, unsigned size) {
 		}
 		else {
 			char key;
-			int i;
-			for (i = 0; i < size; i++) {
+			for (read_count = 0; read_count < size; read_count++) {
 				key = input_getc ();
 				*read_buffer++ = key;
 				if (key == '\0') {
 					break;
 				}
 			}
-			read_count = i;
 		}
 	}
 	else {

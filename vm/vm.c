@@ -8,6 +8,10 @@
 #include "hash.h"
 #include "threads/vaddr.h"
 
+/* Anonymous Page */
+#include "userprog/process.h"
+#include "threads/vaddr.h"
+
 /* Memory management */
 struct list frame_table;
 
@@ -23,6 +27,7 @@ vm_init (void) {
 	register_inspect_intr ();
 	/* DO NOT MODIFY UPPER LINES. */
 	/* TODO: Your code goes here. */
+	list_init (&frame_table);
 }
 
 /* Get the type of the page. This function is useful if you want to know the
@@ -57,10 +62,29 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 
 	/* Check wheter the upage is already occupied or not. */
 	if (spt_find_page (spt, upage) == NULL) {
+		/* Anonymous Page */
 		/* TODO: Create the page, fetch the initialier according to the VM type,
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
 		 * TODO: should modify the field after calling the uninit_new. */
 		/* TODO: Insert the page into the spt. */
+		struct page *page = (struct page*)malloc (sizeof (struct page));
+
+		bool (*page_initailizer) (struct page *, enum vm_type, void *);
+
+		switch (VM_TYPE (type)) {
+			case VM_ANON:
+				page_initailizer = anon_initializer;
+				break;
+			case VM_FILE:
+				page_initailizer = file_backed_initializer;
+				break;
+		}
+
+		uninit_new (page, upage, init, type, aux, page_initailizer);
+
+		page->writable = writable;
+
+		return spt_insert_page (spt, page);;
 	}
 err:
 	return false;
@@ -123,7 +147,7 @@ vm_evict_frame (void) {
 	/* TODO: swap out the victim and return the evicted frame. */
 	swap_out (victim->page);
 
-	return NULL;
+	return victim;
 }
 
 /* palloc() and get frame. If there is no available page, evict the page
@@ -134,13 +158,12 @@ static struct frame *
 vm_get_frame (void) {
 	/* Memory Management */
 	struct frame *frame = (struct frame *)malloc (sizeof (struct frame));
-
-	if (frame == NULL || frame->kva) {
-		PANIC ("todo");
-		return NULL;
-	}
-
+	
 	frame->kva = palloc_get_page (PAL_USER | PAL_ZERO);
+
+	if (frame == NULL) {
+		PANIC ("todo");
+	}
 
 	if (frame->kva == NULL) {
 		frame = vm_evict_frame ();
@@ -173,14 +196,33 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 		bool user UNUSED, bool write UNUSED, bool not_present UNUSED) {
 	struct supplemental_page_table *spt UNUSED = &thread_current ()->spt;
 	struct page *page = NULL;
-	
+
+	if (addr == NULL) {
+		return false;
+	}
+
+	if (is_kernel_vaddr (addr)) {
+		return false;
+	}
+
 	/* Memory Management */
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
-	page = spt_find_page (spt, addr);
-	
+	if (not_present) {
+		page = spt_find_page(spt, addr);
 
-	return vm_do_claim_page (page);
+		if (page == NULL) {
+			return false;
+		}
+
+		if (write == 1 && page->writable == 0) {
+			return false;
+		}
+
+		return vm_do_claim_page (page);
+	}
+
+	return false;
 }
 
 /* Free the page.
@@ -236,13 +278,48 @@ supplemental_page_table_init (struct supplemental_page_table *spt UNUSED) {
 bool
 supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 		struct supplemental_page_table *src UNUSED) {
+	
+	/* Anonymous Page */
+	struct thread *curr = thread_current ();
+	struct hash_iterator iter;
+
+	hash_first (&iter, &src->hash_page);
+
+	while (hash_next (&iter)) {
+		struct page *parent_page = hash_entry (hash_cur (&iter), struct page, hash_elem);
+		enum vm_type parent_type = parent_page->operations->type;
+		void *upage = parent_page->va;
+		bool writable = parent_page->writable;
+
+		if (parent_type == VM_UNINIT) {
+			vm_initializer *init = parent_page->uninit.init;
+			void *aux = parent_page->uninit.aux;
+			vm_alloc_page_with_initializer (VM_ANON, upage, writable, init, aux);
+			continue;
+		}
+		
+		if (!vm_alloc_page (parent_type, upage, writable)) {
+			return false;
+		}
+
+		if (!vm_claim_page (upage)) {
+			return false;
+		}
+
+		struct page *child_page = spt_find_page (dst, upage);
+		memcpy (child_page->frame->kva, parent_page->frame->kva, PGSIZE);
+	}
+
+	return true;
 }
 
 /* Free the resource hold by the supplemental page table */
 void
 supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
+	/* Anonymous Page */
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
+	hash_clear (&spt->hash_page, hash_page_destroy);
 }
 
 /* Memory Management */
@@ -288,3 +365,10 @@ vm_delete_page (struct hash *pages, struct page *p) {
 	}
 }
 
+/* Anonymous Page */
+void 
+hash_page_destroy (struct hash_elem *elem, void *aux) {
+	struct page *page = hash_entry (elem, struct page, hash_elem);
+	destroy (page);
+	free (page);
+}

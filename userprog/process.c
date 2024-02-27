@@ -32,6 +32,14 @@ struct dict_elem{
 	uintptr_t value;
 };
 
+/* Anonymous Page */
+struct load_aux {
+	struct file *file;
+	off_t ofs;
+	uint32_t read_bytes;
+	uint32_t zero_bytes;
+};
+
 static void process_cleanup (void);
 static bool load (const char *file_name, struct intr_frame *if_);
 static void initd (void *f_name);
@@ -824,9 +832,24 @@ install_page (void *upage, void *kpage, bool writable) {
 
 static bool
 lazy_load_segment (struct page *page, void *aux) {
+	/* Anonymous Page */
 	/* TODO: Load the segment from the file */
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */
+	
+	struct load_aux *load_aux = (struct load_aux *)aux;
+
+	file_seek (load_aux->file, load_aux->ofs);
+
+	if (file_read (load_aux->file, page->frame->kva, load_aux->read_bytes) != (int)(load_aux->read_bytes)) {
+		palloc_free_page (page->frame->kva);
+
+		return false;
+	}
+
+	memset (page->frame->kva + load_aux->read_bytes, 0, load_aux->zero_bytes);
+
+	return true;
 }
 
 /* Loads a segment starting at offset OFS in FILE at address
@@ -857,16 +880,26 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
+		/* Anonymous Page */
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
-		void *aux = NULL;
+		struct load_aux *load_aux = (struct load_aux *)malloc (sizeof (struct load_aux));
+		load_aux->file = file;
+		load_aux->ofs = ofs;
+		load_aux->read_bytes = page_read_bytes;
+		load_aux->zero_bytes = page_zero_bytes;
+
+		/* Anonymous Page */
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
-					writable, lazy_load_segment, aux))
+					writable, lazy_load_segment, load_aux))
 			return false;
 
 		/* Advance. */
 		read_bytes -= page_read_bytes;
 		zero_bytes -= page_zero_bytes;
 		upage += PGSIZE;
+		
+		/* Anonymous Page */
+		ofs += page_read_bytes;
 	}
 	return true;
 }
@@ -877,10 +910,18 @@ setup_stack (struct intr_frame *if_) {
 	bool success = false;
 	void *stack_bottom = (void *) (((uint8_t *) USER_STACK) - PGSIZE);
 
+	/* Anonymous Page */
 	/* TODO: Map the stack on stack_bottom and claim the page immediately.
 	 * TODO: If success, set the rsp accordingly.
 	 * TODO: You should mark the page is stack. */
 	/* TODO: Your code goes here */
+	if (vm_alloc_page (VM_ANON | VM_MARKER_0, stack_bottom, true)) {
+		success = vm_claim_page (stack_bottom);
+
+		if (success) {
+			if_->rsp = USER_STACK;
+		}
+	}
 
 	return success;
 }
