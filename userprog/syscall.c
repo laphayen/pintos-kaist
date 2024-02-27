@@ -154,6 +154,7 @@ void
 check_address (void *addr) {
 	struct thread *curr = thread_current ();
 	
+	/* Anonymous Page */
 	if (!is_user_vaddr (addr) || addr == NULL) {
 		exit (-1);
 	}
