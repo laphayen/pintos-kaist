@@ -195,15 +195,18 @@ bool
 vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 		bool user UNUSED, bool write UNUSED, bool not_present UNUSED) {
 	struct supplemental_page_table *spt UNUSED = &thread_current ()->spt;
-	struct page *page = NULL;
+	
+	/* Stack Growth */
+	void * round_va = pg_round_down (addr);
 
-	if (addr == NULL) {
-		return false;
-	}
+	struct page *page = NULL;
 
 	if (is_kernel_vaddr (addr)) {
 		return false;
 	}
+
+	void *stack_start = USER_STACK;
+	void *stack_end = stack_start - (1 << 20);
 
 	/* Memory Management */
 	/* TODO: Validate the fault */
