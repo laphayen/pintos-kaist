@@ -183,6 +183,8 @@ vm_get_frame (void) {
 /* Growing the stack. */
 static void
 vm_stack_growth (void *addr UNUSED) {
+	/* Stack Growth */
+	vm_alloc_page (VM_ANON | VM_MARKER_0, addr, true);
 }
 
 /* Handle the fault on write_protected page */
@@ -208,12 +210,12 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 	void *stack_start = USER_STACK;
 	void *stack_end = stack_start - (1 << 20);
 
+	page = spt_find_page(spt, round_va);
+
 	/* Memory Management */
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
 	if (not_present) {
-		page = spt_find_page(spt, addr);
-
 		if (page == NULL) {
 			return false;
 		}
