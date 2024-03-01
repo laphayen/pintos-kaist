@@ -91,6 +91,10 @@ syscall_init (void) {
 /* The main system call interface */
 void
 syscall_handler (struct intr_frame *f UNUSED) {
+
+#ifdef VM
+	thread_current ()->rsp = f->rsp;
+#endif
 	/* System Call */
 	int syscall_number = f->R.rax;
 	switch (syscall_number) {
