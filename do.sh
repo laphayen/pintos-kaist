@@ -153,4 +153,4 @@ make
 cd build
 source ../../activate
 
-$SWAP_FORK
+$PT_WRITE_CODE2
