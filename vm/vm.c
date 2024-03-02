@@ -225,7 +225,7 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 		}
 	}
 	else {
-		if (page->writable == false && write == true) {
+		if (write == 1 && page->writable == 0) {
 			return false;
 		}
 	}
