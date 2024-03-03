@@ -217,22 +217,30 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
 	if (not_present) {
+		void *rsp = f->rsp;
+
+		if (!user) {
+			rsp = thread_current ()->rsp;
+		}
+
 		if (upage >= stack_end && upage < stack_start && f->rsp == (uint64_t)addr) {
 			vm_stack_growth (upage);
 		}
-		else {
+
+		page = spt_find_page (spt, addr);
+
+		if (page == NULL) {
 			return false;
 		}
-	}
-	else {
+
 		if (write == 1 && page->writable == 0) {
 			return false;
 		}
+
+		return vm_do_claim_page (page);
 	}
 
-	page = spt_find_page (spt, upage);
-
-	return vm_do_claim_page (page);
+	return false;
 }
 
 /* Free the page.
