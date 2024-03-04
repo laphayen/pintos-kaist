@@ -213,16 +213,16 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 		return true;
 	}
 
+	void *rsp = f->rsp;
+
+	if (!user) {
+		rsp = thread_current ()->rsp;
+	}
+
 	/* Memory Management */
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
 	if (not_present) {
-		void *rsp = f->rsp;
-
-		if (!user) {
-			rsp = thread_current ()->rsp;
-		}
-
 		if (upage >= stack_end && upage < stack_start && f->rsp == (uint64_t)addr) {
 			vm_stack_growth (upage);
 		}
