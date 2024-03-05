@@ -231,15 +231,15 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 		return vm_do_claim_page (page);
 	}
 	else {
-		if ((user && write)) {
-			if (upage >= stack_end && upage < stack_start && f->rsp == (uint64_t)addr) {
-				vm_stack_growth (upage);
-				return true;
-			}
+		if (upage >= stack_end && upage < stack_start && f->rsp == (uint64_t)addr) {
+			vm_stack_growth (upage);
+			return true;
 		}
 
 		return false;
 	}
+
+	return false;
 }
 
 /* Free the page.
