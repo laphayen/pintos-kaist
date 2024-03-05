@@ -198,13 +198,14 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 		bool user UNUSED, bool write UNUSED, bool not_present UNUSED) {
 	struct supplemental_page_table *spt UNUSED = &thread_current ()->spt;
 	
-
 	void *upage = pg_round_down(addr);
 	struct page *page = NULL;
 	uintptr_t rsp = NULL;
+	void *stack_start = USER_STACK;
+	void *stack_end = stack_start - (1 << 20);
 
 	/* Stack Growth */
-	if (is_kernel_vaddr (addr) || addr == NULL || not_present == false) {
+	if (is_kernel_vaddr (addr) || addr == NULL) {
 		return false;
 	}
 
@@ -213,13 +214,6 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 	}
 	else {
 		rsp = f->rsp;
-	}
-
-	void *stack_start = USER_STACK;
-	void *stack_end = stack_start - (1 << 20);
-
-	if (vm_claim_page (addr) == true) {
-		return true;
 	}
 
 	/* TODO: Validate the fault */
