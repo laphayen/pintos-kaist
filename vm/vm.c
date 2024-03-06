@@ -192,21 +192,25 @@ static bool
 vm_handle_wp (struct page *page UNUSED) {
 }
 
+/* Stack Growth */
 /* Return true on success */
 bool
 vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 		bool user UNUSED, bool write UNUSED, bool not_present UNUSED) {
 	struct supplemental_page_table *spt UNUSED = &thread_current ()->spt;
-	
-	void *upage = pg_round_down(addr);
 	struct page *page = NULL;
 	uintptr_t rsp = NULL;
+
+	void *upage = pg_round_down(addr);
 	void *stack_start = USER_STACK;
 	void *stack_end = stack_start - (1 << 20);
 
-	/* Stack Growth */
-	if (is_kernel_vaddr (addr) || addr == NULL) {
+	if (is_kernel_vaddr (addr) || addr == NULL || not_present == false) {
 		return false;
+	}
+
+	if (vm_claim_page (addr) == true) {
+		return true;
 	}
 
 	if (!user) {
@@ -216,27 +220,23 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 		rsp = f->rsp;
 	}
 
+	if (vm_claim_page (addr) == true) {
+		return true;
+	}
+
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
-	page = spt_find_page (spt, addr);
-	
-	if (page != NULL) {
-		if (!not_present && is_user_vaddr (addr)) {
-			exit (-1);
+	if (not_present) {
+		if (!vm_claim_page (addr)) {
+			if (upage >= stack_end && upage < stack_start && f->rsp == (uint64_t)addr) {
+				vm_stack_growth (upage);
+				return true;
+			}
+			return false;
 		}
-		if (((page->writable) == 0) && write) {
-			exit (-1);
-		}
-
-		return vm_do_claim_page (page);
 	}
 	else {
-		if (upage >= stack_end && upage < stack_start && f->rsp == (uint64_t)addr) {
-			vm_stack_growth (upage);
-			return true;
-		}
-
-		return false;
+		return true;
 	}
 
 	return false;
