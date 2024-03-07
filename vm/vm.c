@@ -202,10 +202,11 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 	void *rsp = NULL;
 
 	void *upage = pg_round_down(addr);
+
 	void *stack_start = USER_STACK;
 	void *stack_end = stack_start - (1 << 20);
 
-	if (is_kernel_vaddr (addr) || addr == NULL || not_present == false) {
+	if (is_kernel_vaddr (addr) || addr == NULL) {
 		return false;
 	}
 
@@ -221,13 +222,10 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 	if (not_present) {
 		if  (upage >= stack_end && upage < stack_start && f->rsp == (uint64_t)addr) {
 			vm_stack_growth (upage);
+			return true;
 		}
 		
 		page = spt_find_page (spt, addr);
-
-		if (page == NULL) {
-			return false;
-		}
 
 		if (write == 1 && page->writable == 0) {
 			return false;
