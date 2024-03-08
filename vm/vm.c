@@ -210,30 +210,27 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 		return false;
 	}
 
-	/* TODO: Validate the fault */
-	/* TODO: Your code goes here */
-	if (not_present) {
-		rsp = is_kernel_vaddr (f->rsp) ? thread_current ()->rsp : f->rsp;
+	page = spt_find_page (spt, addr);
 
-		if  (upage >= stack_end && upage < stack_start && f->rsp == (uint64_t)addr) {
-			vm_stack_growth (upage);
-			return true;
-		}
-
-		page = spt_find_page (spt, addr);
-
-		if (page == NULL) {
+	if (page != NULL) {
+		if (!not_present && is_user_vaddr (addr)) {
 			return false;
 		}
 
-		if (write == 1 && page->writable == 0) {
+		if (((page->writable) == 0) && (write == 1)) {
 			return false;
 		}
-
-		return vm_do_claim_page (page);
 	}
-
-	return false;
+	else {
+		if ((user && (write) == 1)) {
+			if (addr > stack_end && addr >= f->rsp - 8 && addr <stack_start) {
+				vm_stack_growth (addr);
+				return true;
+			}
+		}
+		return false;
+	}
+	
 }
 
 /* Free the page.
