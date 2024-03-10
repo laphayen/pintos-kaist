@@ -205,7 +205,6 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 
 	void *rsp = NULL;
 	void *rd_page = pg_round_down(addr);
-	struct page *find_page = spt_find_page (spt, rd_page);
 	
 	void *stack_start = USER_STACK;
 	void *stack_end = stack_start - (1 << 20);
@@ -213,24 +212,21 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 	if (is_kernel_vaddr (addr) || addr == NULL) {
 		return false;
 	}
-
-	if (vm_claim_page (addr) == true) {
-		return true;
-	}
+	
+	rsp = is_kernel_vaddr (f->rsp) ? thread_current ()->rsp : (void *)f->rsp;
 	
 	if (not_present) {
-		rsp = is_kernel_vaddr (f->rsp) ? thread_current ()->rsp : f->rsp;
+		if (vm_claim_page (addr) == true) {
+			return true;
+		}
 
 		if (!vm_claim_page (addr)) {
 			if (rd_page >= stack_end && rd_page < stack_start && f->rsp == (uint64_t)addr) {
 				vm_stack_growth (rd_page);
+				vm_claim_page (addr);
 				return true;
 			}
-			return false;
 		}
-	}
-	else {
-		return true;
 	}
 
 	return false;
