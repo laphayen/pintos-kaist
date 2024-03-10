@@ -221,7 +221,7 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 		}
 
 		if (!vm_claim_page (addr)) {
-			if (rd_page >= stack_end && rd_page < stack_start && f->rsp == (uint64_t)addr) {
+			if (rsp - 8 <= addr && USER_STACK - (1<<20) <= addr && addr <= USER_STACK) {
 				vm_stack_growth (rd_page);
 				vm_claim_page (addr);
 				return true;
