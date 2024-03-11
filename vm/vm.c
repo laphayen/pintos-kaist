@@ -216,20 +216,15 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 	rsp = is_kernel_vaddr (f->rsp) ? thread_current ()->rsp : (void *)f->rsp;
 	
 	if (not_present) {
-		if (vm_claim_page (addr) == true) {
-			return true;
-		}
-
 		if (!vm_claim_page (addr)) {
 			if (rsp - 8 <= addr && USER_STACK - (1<<20) <= addr && addr <= USER_STACK) {
 				vm_stack_growth (rd_page);
-				vm_claim_page (addr);
 				return true;
 			}
-		}
-
-		if (write == 1 && page->writable == 0) {
 			return false;
+		}
+		else {
+			return true;
 		}
 	}
 
