@@ -203,25 +203,19 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
 
-	void *rsp = NULL;
+	void *rsp = is_kernel_vaddr (f->rsp) ? thread_current ()->rsp : (void *)f->rsp;
 	void *rd_page = pg_round_down(addr);
 	
-	void *stack_start = USER_STACK;
-	void *stack_end = stack_start - (1 << 20);
-
-	if (is_kernel_vaddr (addr)) {
+	if (is_kernel_vaddr (addr) || addr == NULL) {
 		return false;
 	}
 	
-	rsp = is_kernel_vaddr (f->rsp) ? thread_current ()->rsp : (void *)f->rsp;
-	
 	if (not_present) {
 		if (!vm_claim_page (addr)) {
-			if (rsp - 8 <= addr && USER_STACK - (1<<20) <= addr && addr <= USER_STACK) {
+			if (rsp - 8 <= addr && USER_STACK - 0x100000 <= addr && addr <= USER_STACK) {
 				vm_stack_growth (rd_page);
 				return true;
 			}
-			return false;
 		}
 		else {
 			return true;
