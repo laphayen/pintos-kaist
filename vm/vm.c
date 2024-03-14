@@ -69,18 +69,18 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 		/* TODO: Insert the page into the spt. */
 		struct page *page = (struct page*)malloc (sizeof (struct page));
 
-		bool (*page_initailizer) (struct page *, enum vm_type, void *);
+		bool (*page_initializer) (struct page *, enum vm_type, void *);
 
 		switch (VM_TYPE (type)) {
 			case VM_ANON:
-				page_initailizer = anon_initializer;
+				page_initializer = anon_initializer;
 				break;
 			case VM_FILE:
-				page_initailizer = file_backed_initializer;
+				page_initializer = file_backed_initializer;
 				break;
 		}
 
-		uninit_new (page, upage, init, type, aux, page_initailizer);
+		uninit_new (page, upage, init, type, aux, page_initializer);
 
 		page->writable = writable;
 
@@ -141,7 +141,7 @@ vm_get_victim (void) {
  * Return NULL on error.*/
 static struct frame *
 vm_evict_frame (void) {
-	struct frame *victim UNUSED = vm_get_victim ();
+	struct frame *victim = vm_get_victim ();
 
 	/* Memory Management */
 	/* TODO: swap out the victim and return the evicted frame. */
@@ -214,8 +214,7 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 	if (not_present) {
         if (rsp - 8 <= addr && USER_STACK - 0x100000 <= addr && addr <= USER_STACK) {
 				vm_stack_growth (rd_page);
-				return true;
-			}
+		}
 
         page = spt_find_page (spt, addr);
 
