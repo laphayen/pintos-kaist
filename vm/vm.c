@@ -184,7 +184,7 @@ vm_get_frame (void) {
 static void
 vm_stack_growth (void *addr UNUSED) {
 	/* Stack Growth */
-	vm_alloc_page (VM_ANON | VM_MARKER_0, pg_round_down(addr), true);
+	vm_alloc_page (VM_ANON | VM_MARKER_0, pg_round_down(addr), 1);
 }
 
 /* Handle the fault on write_protected page */
