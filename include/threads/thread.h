@@ -146,9 +146,6 @@ struct thread {
 	int stdin_count;
 	int stdout_count;
 
-	/* Stack Growth */
-	void *rsp;
-
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */
@@ -156,6 +153,9 @@ struct thread {
 #ifdef VM
 	/* Table for whole virtual memory owned by thread. */
 	struct supplemental_page_table spt;
+	/* Stack Growth */
+	void *rsp;
+	void *stack_bottom;
 #endif
 
 	/* Owned by thread.c. */
