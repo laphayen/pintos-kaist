@@ -141,7 +141,7 @@ vm_get_victim (void) {
  * Return NULL on error.*/
 static struct frame *
 vm_evict_frame (void) {
-	struct frame *victim = vm_get_victim ();
+	struct frame *victim UNUSED = vm_get_victim ();
 
 	/* Memory Management */
 	/* TODO: swap out the victim and return the evicted frame. */
@@ -184,7 +184,10 @@ vm_get_frame (void) {
 static void
 vm_stack_growth (void *addr UNUSED) {
 	/* Stack Growth */
-	vm_alloc_page (VM_ANON | VM_MARKER_0, pg_round_down(addr), 1);
+	if (vm_alloc_page (VM_ANON | VM_MARKER_0, pg_round_down(addr), 1)) {
+		vm_claim_page (addr);
+		thread_current ()->stack_bottom -= PGSIZE;
+	}
 }
 
 /* Handle the fault on write_protected page */
@@ -202,19 +205,15 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
-	void *rsp;
+	void *rsp = !user ? thread_current ()->rsp : f->rsp;
 
 	if (is_kernel_vaddr (addr) || addr == NULL) {
 		return false;
 	}
 
 	if (not_present) {
-		if (!user) {
-			rsp = thread_current ()->rsp;
-		}
-
 		if (rsp - 8 <= addr && USER_STACK - 0x100000 <= addr && addr <= USER_STACK) {
-			vm_stack_growth (addr);
+			vm_stack_growth (pg_round_down (addr));
 		}
 		
 		page = spt_find_page (spt, addr);
@@ -223,11 +222,14 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 			return false;
 		}
 
-        if (write && page->writable == 0) {
+        if (write && !page->writable) {
 			return false;
 		}
 
-		return vm_do_claim_page (page);
+		if (!vm_do_claim_page (page)) {
+			return false;
+		}
+		return true;
     }
 
     return false;
