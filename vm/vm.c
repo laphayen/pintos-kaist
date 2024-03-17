@@ -202,18 +202,19 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
+	void *rsp;
 
 	if (is_kernel_vaddr (addr) || addr == NULL) {
 		return false;
 	}
 
 	if (not_present) {
-		void *rsp = is_kernel_vaddr (f->rsp) ? thread_current ()->rsp : f->rsp;
-	
+		if (!user) {
+			rsp = thread_current ()->rsp;
+		}
 
 		if (rsp - 8 <= addr && USER_STACK - 0x100000 <= addr && addr <= USER_STACK) {
-			void *rd_page = pg_round_down (addr);
-			vm_stack_growth (rd_page);
+			vm_stack_growth (addr);
 		}
 		
 		page = spt_find_page (spt, addr);
@@ -228,10 +229,9 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 
 		return vm_do_claim_page (page);
     }
-	
+
     return false;
 }
-
 
 /* Free the page.
  * DO NOT MODIFY THIS FUNCTION. */
