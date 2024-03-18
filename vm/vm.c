@@ -210,10 +210,11 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 	if (is_kernel_vaddr (addr) || addr == NULL) {
 		return false;
 	}
-
+ 
 	if (not_present) {
 		if (rsp - 8 <= addr && USER_STACK - 0x100000 <= addr && addr <= USER_STACK) {
 			vm_stack_growth (pg_round_down (addr));
+			return true;
 		}
 		
 		page = spt_find_page (spt, addr);
