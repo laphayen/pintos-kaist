@@ -214,7 +214,10 @@ fork (const char *thread_name, struct intr_frame *f) {
 bool
 create (const char *file, unsigned initial_size) {
 	check_address (file);
-	return filesys_create (file, initial_size);
+	lock_acquire (&filesys_lock);
+	bool success = filesys_create (file, initial_size);
+	lock_release (&filesys_lock);
+	return success;
 }
 
 /* System Call */
