@@ -91,13 +91,9 @@ syscall_init (void) {
 /* The main system call interface */
 void
 syscall_handler (struct intr_frame *f UNUSED) {
-#ifdef VM
-	thread_current()->rsp = f->rsp;
-#endif
-
 	/* System Call */
 	int syscall_number = f->R.rax;
-	
+
 	check_address(f->rsp);
 
 	switch (syscall_number) {
@@ -160,19 +156,30 @@ syscall_handler (struct intr_frame *f UNUSED) {
 void
 check_address (void *addr) {
 	struct thread *curr = thread_current ();
+
+	/* Stack Growth */
+#ifdef VM
+	if (is_kernel_vaddr (addr) || !addr) {
+		exit (-1);
+	}
+
+	struct page *page = NULL;
+
+	page = spt_find_page (&curr->spt, addr);
+
+	if (page == NULL) {
+		exit (-1);
+	}
+
+	return page;
+
+#endif
 	
 	/* Anonymous Page */
 	if (!is_user_vaddr (addr) || addr == NULL) {
 		exit (-1);
 	}
-	
-#ifdef VM
-	if (pml4_get_page (&curr->pml4, addr) == NULL) {
-		if (spt_find_page (&curr->spt, addr) == NULL) {
-			exit (-1);
-		}
-	}
-	#endif
+
 }
 
 /* System Call */
