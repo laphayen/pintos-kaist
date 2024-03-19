@@ -207,7 +207,7 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 	/* TODO: Your code goes here */
 	void *rsp = !user ? thread_current ()->rsp : f->rsp;
 
-	if (is_kernel_vaddr (addr) || addr == NULL) {
+	if (is_kernel_vaddr (addr) || addr == NULL || !not_present) {
 		return false;
 	}
  
