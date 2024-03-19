@@ -97,6 +97,8 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 	/* System Call */
 	int syscall_number = f->R.rax;
+	
+	check_address(f->rsp);
 
 	switch (syscall_number) {
 		case SYS_HALT:
@@ -163,8 +165,8 @@ check_address (void *addr) {
 	if (!is_user_vaddr (addr) || addr == NULL) {
 		exit (-1);
 	}
-
-	#ifdef VM
+	
+#ifdef VM
 	if (pml4_get_page (&curr->pml4, addr) == NULL) {
 		if (spt_find_page (&curr->spt, addr) == NULL) {
 			exit (-1);
