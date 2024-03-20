@@ -154,8 +154,7 @@ struct thread {
 	/* Table for whole virtual memory owned by thread. */
 	struct supplemental_page_table spt;
 	/* Stack Growth */
-	void *rsp;
-	void *stack_bottom;
+	uint64_t *rsp;
 #endif
 
 	/* Owned by thread.c. */
