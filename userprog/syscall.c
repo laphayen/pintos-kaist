@@ -91,10 +91,13 @@ syscall_init (void) {
 /* The main system call interface */
 void
 syscall_handler (struct intr_frame *f UNUSED) {
+
+#ifdef VM
+	thread_current ()->rsp = f->rsp;
+#endif
+
 	/* System Call */
 	int syscall_number = f->R.rax;
-
-	check_address(f->rsp);
 
 	switch (syscall_number) {
 		case SYS_HALT:
@@ -155,31 +158,13 @@ syscall_handler (struct intr_frame *f UNUSED) {
 /* If the address is outside the user space, terminate the process. */
 void
 check_address (void *addr) {
-	struct thread *curr = thread_current ();
-
-	/* Stack Growth */
+    struct thread *curr = thread_current();
 #ifdef VM
-	if (is_kernel_vaddr (addr) || !addr) {
-		exit (-1);
-	}
-
-	struct page *page = NULL;
-
-	page = spt_find_page (&curr->spt, addr);
-
-	if (page == NULL) {
-		exit (-1);
-	}
-
-	return page;
-
+    if (addr == NULL || is_kernel_vaddr(addr) || spt_find_page(&curr->spt, addr) == NULL)
+        exit(-1);
 #endif
-	
-	/* Anonymous Page */
-	if (!is_user_vaddr (addr) || addr == NULL) {
-		exit (-1);
-	}
-
+    if (addr == NULL || is_kernel_vaddr(addr) || pml4_get_page(curr->pml4, addr) == NULL)
+        exit(-1);
 }
 
 /* System Call */
