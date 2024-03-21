@@ -301,6 +301,13 @@ int
 read (int fd, void *buffer, unsigned size) {
 	check_address(buffer);
 
+	/* Stack Growth */
+	/* pt-write-code2 */
+	struct page *p = spt_find_page (&thread_current ()->spt, pg_round_down(buffer));
+	if (p == NULL || p->writable == false) {
+		exit (-1);
+	}
+
 	unsigned char *read_buffer = (char *)buffer;
 	struct thread *curr = thread_current ();
 	struct file *file_obj = process_get_file (fd);
