@@ -162,20 +162,11 @@ check_address (void *addr) {
  	struct thread *curr = thread_current();
 
 #ifdef VM
-	if (addr == NULL) {
-		exit (-1);
-	}
-
-	struct page *page = spt_find_page (&thread_current ()->spt, addr);
-
-	if (is_kernel_vaddr (addr) || !page) {
-		exit (-1);
-	}
-
-	return page;
+ 	if (addr == NULL || is_kernel_vaddr (addr) || spt_find_page (&curr->spt, addr) == NULL)
+        exit (-1);
 #else
 	if (!is_user_vaddr (addr) || pml4_get_page (curr->pml4, addr) == NULL) {
-		exit(-1);
+		exit (-1);
 	}
 #endif
 
