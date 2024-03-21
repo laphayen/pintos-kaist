@@ -91,6 +91,12 @@ syscall_init (void) {
 /* The main system call interface */
 void
 syscall_handler (struct intr_frame *f UNUSED) {
+
+/* Stack Growth */
+#ifdef VM
+	thread_current ()->rsp = f->rsp;
+#endif
+
 	/* System Call */
 	int syscall_number = f->R.rax;
 	switch (syscall_number) {
@@ -147,25 +153,23 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	}
 }
 
+/* Stack Growth */
 /* User Memory Access */
 /* Check if the address value is within the range of addresses used by the user space. */
 /* If the address is outside the user space, terminate the process. */
 void
 check_address (void *addr) {
-	struct thread *curr = thread_current ();
-	
-	/* Anonymous Page */
-	if (!is_user_vaddr (addr) || addr == NULL) {
+ 	struct thread *curr = thread_current();
+
+#ifdef VM
+ 	if (addr == NULL || is_kernel_vaddr (addr) || spt_find_page (&curr->spt, addr) == NULL)
+        exit (-1);
+#else
+	if (!is_user_vaddr (addr) || pml4_get_page (curr->pml4, addr) == NULL) {
 		exit (-1);
 	}
+#endif
 
-	#ifdef VM
-	if (pml4_get_page (&curr->pml4, addr) == NULL) {
-		if (spt_find_page (&curr->spt, addr) == NULL) {
-			exit (-1);
-		}
-	}
-	#endif
 }
 
 /* System Call */
@@ -200,7 +204,10 @@ fork (const char *thread_name, struct intr_frame *f) {
 bool
 create (const char *file, unsigned initial_size) {
 	check_address (file);
-	return filesys_create (file, initial_size);
+	lock_acquire (&filesys_lock);
+	bool success = filesys_create (file, initial_size);
+	lock_release (&filesys_lock);
+	return success;
 }
 
 /* System Call */
@@ -285,6 +292,13 @@ filesize (int fd) {
 int
 read (int fd, void *buffer, unsigned size) {
 	check_address(buffer);
+
+	/* Stack Growth */
+	/* pt-write-code2 */
+	struct page *p = spt_find_page (&thread_current ()->spt, pg_round_down(buffer));
+	if (p == NULL || p->writable == false) {
+		exit (-1);
+	}
 
 	unsigned char *read_buffer = (char *)buffer;
 	struct thread *curr = thread_current ();

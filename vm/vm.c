@@ -69,18 +69,18 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 		/* TODO: Insert the page into the spt. */
 		struct page *page = (struct page*)malloc (sizeof (struct page));
 
-		bool (*page_initailizer) (struct page *, enum vm_type, void *);
+		bool (*page_initializer) (struct page *, enum vm_type, void *);
 
 		switch (VM_TYPE (type)) {
 			case VM_ANON:
-				page_initailizer = anon_initializer;
+				page_initializer = anon_initializer;
 				break;
 			case VM_FILE:
-				page_initailizer = file_backed_initializer;
+				page_initializer = file_backed_initializer;
 				break;
 		}
 
-		uninit_new (page, upage, init, type, aux, page_initailizer);
+		uninit_new (page, upage, init, type, aux, page_initializer);
 
 		page->writable = writable;
 
@@ -183,6 +183,8 @@ vm_get_frame (void) {
 /* Growing the stack. */
 static void
 vm_stack_growth (void *addr UNUSED) {
+	/* Stack Growth */
+	vm_alloc_page (VM_ANON | VM_MARKER_0, addr, true);
 }
 
 /* Handle the fault on write_protected page */
@@ -190,26 +192,34 @@ static bool
 vm_handle_wp (struct page *page UNUSED) {
 }
 
+/* Stack Growth */
 /* Return true on success */
 bool
 vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
 		bool user UNUSED, bool write UNUSED, bool not_present UNUSED) {
 	struct supplemental_page_table *spt UNUSED = &thread_current ()->spt;
 	struct page *page = NULL;
+	void *rsp = NULL;
 
-	if (addr == NULL) {
+	void *upage = pg_round_down (addr);
+
+	void *stack_start = USER_STACK;
+	void *stack_end = stack_start - (1 << 20);
+
+	if (is_kernel_vaddr (addr) || addr == NULL || !not_present) {
 		return false;
 	}
 
-	if (is_kernel_vaddr (addr)) {
-		return false;
-	}
-
-	/* Memory Management */
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
 	if (not_present) {
-		page = spt_find_page(spt, addr);
+		rsp = is_kernel_vaddr (f->rsp) ? thread_current ()->rsp : f->rsp;
+
+		if (upage >= stack_end && upage < stack_start && f->rsp == (uint64_t) addr) {
+			vm_stack_growth (upage);
+		}
+
+		page = spt_find_page (spt, addr);
 
 		if (page == NULL) {
 			return false;
