@@ -147,6 +147,15 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		case SYS_DUP2:
 			f->R.rax = dup2 (f->R.rdi, f->R.rsi);
 			break;
+
+		/* Memory Mapped Files */
+		case SYS_MMAP:
+			f->R.rax = mmap (f->R.rdi, f->R.rsi, f->R.rdx, f->R.r10, f->R.r8);
+			break;
+		case SYS_MUNMAP:
+			munmap (f->R.rdi);
+			break;
+		
 		default:
 			exit (-1);
 			break;
