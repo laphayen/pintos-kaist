@@ -526,3 +526,34 @@ dup2 (int oldfd, int newfd) {
 
 	return newfd;
 }
+
+/* Memory Mapped Files */
+void 
+*mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
+
+	struct thread *curr = thread_current ();
+	struct file *file_obj = process_get_file (fd);
+
+	if (file_obj == NULL || file_obj == STDIN || file_obj == STDOUT) {
+		return NULL;
+	}
+
+	if (is_kernel_vaddr (addr) || is_kernel_vaddr (addr + length) || pg_ofs (addr)) {
+		return NULL;
+	}
+
+	if (addr == NULL || addr + length == NULL) {
+		return false;
+	}
+
+	if (spt_find_page(&curr->spt, addr) || offset % PGSIZE) {
+		return false;
+	}
+
+	return do_mmap (addr, length, writable, file_obj, offset);
+}
+
+void
+munmap (void *addr) {
+	return do_munmap (addr);
+}
