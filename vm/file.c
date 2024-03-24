@@ -2,6 +2,9 @@
 
 #include "vm/vm.h"
 
+/* Memory Mapped Files */
+#include "threads/vaddr.h"
+
 static bool file_backed_swap_in (struct page *page, void *kva);
 static bool file_backed_swap_out (struct page *page);
 static void file_backed_destroy (struct page *page);
@@ -50,6 +53,18 @@ file_backed_destroy (struct page *page) {
 void *
 do_mmap (void *addr, size_t length, int writable,
 		struct file *file, off_t offset) {
+	struct thread *curr = thread_current ();
+	struct file *file_obj = file_reopen (file);
+	void *init_addr = addr;
+
+	size_t read_bytes = length < PGSIZE ? PGSIZE : file_lengt (file);
+	size_t zero_bytes = PGSIZE - read_bytes % PGSIZE;
+
+	while (read_bytes > 0 || zero_bytes > 0) {
+		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
+		size_t page_zero_bytes = PGSIZE - page_read_bytes;
+	}
+	return init_addr;
 }
 
 /* Do the munmap */
