@@ -528,6 +528,7 @@ dup2 (int oldfd, int newfd) {
 }
 
 /* Memory Mapped Files */
+/* Check if mapping virtual pages to a file is appropriate */
 void 
 *mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
 
@@ -553,6 +554,8 @@ void
 	return do_mmap (addr, length, writable, file_obj, offset);
 }
 
+/* Memory Mapped Files */
+/* Unmapping the mapping for the designated address range addr */
 void
 munmap (void *addr) {
 	return do_munmap (addr);
