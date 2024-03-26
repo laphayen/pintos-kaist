@@ -59,6 +59,10 @@ tid_t fork (const char *thread_name, struct intr_frame *f);
 /* Dup2 */
 int dup2 (int oldfd, int newfd);
 
+/* Memory Mapped Files */
+void *mmap (void *addr, size_t length, int writable, int fd, off_t offset);
+void munmap (void *addr);
+
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -150,7 +154,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 		/* Memory Mapped Files */
 		case SYS_MMAP:
-			f->R.rax = mmap (f->R.rdi, f->R.rsi, f->R.rdx, f->R.r10, f->R.r8);
+			f->R.rax = mmap(f->R.rdi, f->R.rsi, f->R.rdx, f->R.r10, f->R.r8);;
 			break;
 		case SYS_MUNMAP:
 			munmap (f->R.rdi);
@@ -529,7 +533,7 @@ dup2 (int oldfd, int newfd) {
 
 /* Memory Mapped Files */
 /* Check if mapping virtual pages to a file is appropriate */
-void 
+void
 *mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
 
 	struct thread *curr = thread_current ();
