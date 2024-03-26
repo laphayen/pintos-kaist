@@ -57,17 +57,37 @@ do_mmap (void *addr, size_t length, int writable,
 	struct file *file_obj = file_reopen (file);
 	void *init_addr = addr;
 
-	size_t read_bytes = length < PGSIZE ? PGSIZE : file_lengt (file);
+	size_t read_bytes = length < PGSIZE ? PGSIZE : file_length (file);
 	size_t zero_bytes = PGSIZE - read_bytes % PGSIZE;
 
 	while (read_bytes > 0 || zero_bytes > 0) {
 		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
+
+		struct load_aux *aux = (struct load_aux *) malloc (sizeof (struct load_aux));
+
+		aux->file = file_obj;
+		aux->ofs = offset;
+		aux->read_bytes = read_bytes;
+		aux->zero_bytes = zero_bytes;
+		aux->writable = writable;
+
+		// if (!vm_alloc_page_with_initializer (VM_FILE, addr, writable, lazy_load_segment, aux)) {
+		// 	return NULL;
+		// }
+
+		read_bytes -= page_read_bytes;
+		zero_bytes -= page_zero_bytes;
+		addr += PGSIZE;
+		offset += page_read_bytes;
 	}
+
 	return init_addr;
 }
 
 /* Do the munmap */
 void
 do_munmap (void *addr) {
+	
 }
+
