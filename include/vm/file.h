@@ -14,4 +14,8 @@ bool file_backed_initializer (struct page *page, enum vm_type type, void *kva);
 void *do_mmap(void *addr, size_t length, int writable,
 		struct file *file, off_t offset);
 void do_munmap (void *va);
+
+/* Memory Mapped Files */
+static bool lazy_load_segment_file (struct page *page, void *aux);
+
 #endif
