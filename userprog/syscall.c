@@ -154,7 +154,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 
 		/* Memory Mapped Files */
 		case SYS_MMAP:
-			f->R.rax = mmap(f->R.rdi, f->R.rsi, f->R.rdx, f->R.r10, f->R.r8);;
+			f->R.rax = mmap (f->R.rdi, f->R.rsi, f->R.rdx, f->R.r10, f->R.r8);;
 			break;
 		case SYS_MUNMAP:
 			munmap (f->R.rdi);
@@ -551,7 +551,7 @@ void
 		return false;
 	}
 
-	if (spt_find_page(&curr->spt, addr) || offset % PGSIZE) {
+	if (spt_find_page (&curr->spt, addr) || offset % PGSIZE) {
 		return false;
 	}
 
