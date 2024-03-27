@@ -307,6 +307,24 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 			vm_alloc_page_with_initializer (VM_ANON, upage, writable, init, aux);
 			continue;
 		}
+
+		if (parent_type == VM_FILE) {
+			struct load_aux *load_aux = malloc (sizeof (struct load_aux));
+			load_aux->file = parent_page->file.file;
+			load_aux->ofs = parent_page->file.ofs;
+			load_aux->read_bytes = parent_page->file.read_bytes;
+			load_aux->zero_bytes = parent_page->file.zero_bytes;
+
+			if (!vm_alloc_page_with_initializer (parent_type, upage, writable, NULL, load_aux)) {
+				return false;
+			}
+
+			struct page *file_page = spt_find_page (dst, upage);
+			file_backed_initializer (file_page, parent_type, NULL);
+			file_page->frame = parent_page->frame;
+			pml4_set_page (thread_current ()->pml4, file_page->va, parent_page->frame->kva, parent_page->writable);
+			continue;
+		}
 		
 		if (!vm_alloc_page (parent_type, upage, writable)) {
 			return false;
