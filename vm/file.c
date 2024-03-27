@@ -72,7 +72,9 @@ do_mmap (void *addr, size_t length, int writable,
 		struct file *file, off_t offset) {
 	struct thread *curr = thread_current ();
 	struct file *file_obj = file_reopen (file);
+	struct page *page;
 	void *init_addr = addr;
+	int page_count = 1;
 
 	size_t read_bytes = length < PGSIZE ? PGSIZE : file_length (file);
 	size_t zero_bytes = PGSIZE - read_bytes % PGSIZE;
@@ -93,10 +95,14 @@ do_mmap (void *addr, size_t length, int writable,
 			return NULL;
 		}
 
+		page = spt_find_page (&curr->spt, addr);
+		page->page_count = page_count;
+
 		read_bytes -= page_read_bytes;
 		zero_bytes -= page_zero_bytes;
 		addr += PGSIZE;
 		offset += page_read_bytes;
+		page_count++;
 	}
 
 	return init_addr;
@@ -105,7 +111,19 @@ do_mmap (void *addr, size_t length, int writable,
 /* Do the munmap */
 void
 do_munmap (void *addr) {
-	
+	struct thread *curr =  thread_current ();
+	struct supplemental_page_table *spt = &curr->spt;
+	struct page *page = spt_find_page (&curr->spt, addr);
+
+	int count = page->page_count;
+	for (int i = 0; i < count; i++) {
+		if (page) {
+			destroy (page);
+		}
+		addr += PGSIZE;
+		page = spt_find_page (spt, addr);
+	}
+
 }
 
 static bool
