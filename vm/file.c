@@ -29,6 +29,15 @@ file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
 	page->operations = &file_ops;
 
 	struct file_page *file_page = &page->file;
+
+	/* Memory Mapped Files */
+	struct load_aux *load_aux = (struct load_aux*)page->uninit.aux;
+	file_page->file = load_aux->file;
+	file_page->ofs = load_aux->ofs;
+	file_page->read_bytes = load_aux->read_bytes;
+	file_page->zero_bytes = load_aux->zero_bytes;
+
+	return true;
 }
 
 /* Swap in the page by read contents from the file. */
@@ -47,6 +56,14 @@ file_backed_swap_out (struct page *page) {
 static void
 file_backed_destroy (struct page *page) {
 	struct file_page *file_page UNUSED = &page->file;
+	struct thread *curr = thread_current ();
+
+	if (pml4_is_dirty (&curr->pml4, page->va)) {
+		file_write_at (file_page->file, page->va, file_page->read_bytes, file_page->ofs);
+		pml4_set_dirty (&curr->pml4, page->va, 0);
+	}
+	
+	pml4_clear_page (&curr->pml4, page->va);
 }
 
 /* Do the mmap */
