@@ -72,9 +72,9 @@ do_mmap (void *addr, size_t length, int writable,
 		aux->zero_bytes = zero_bytes;
 		aux->writable = writable;
 
-		// if (!vm_alloc_page_with_initializer (VM_FILE, addr, writable, lazy_load_segment, aux)) {
-		// 	return NULL;
-		// }
+		if (!vm_alloc_page_with_initializer (VM_FILE, addr, writable, lazy_load_segment_file, aux)) {
+			return NULL;
+		}
 
 		read_bytes -= page_read_bytes;
 		zero_bytes -= page_zero_bytes;
@@ -91,3 +91,27 @@ do_munmap (void *addr) {
 	
 }
 
+static bool
+lazy_load_segment_file (struct page *page, void *aux) {
+	struct load_aux *load_aux = (struct load_aux*)aux;
+	struct file *file_obj = load_aux->file;
+	size_t page_read_bytes = load_aux->read_bytes;
+	size_t page_zero_bytes = load_aux->zero_bytes;
+	off_t ofs = load_aux->ofs;
+
+	file_seek (file_obj, ofs);
+
+	void *kva = page->frame->kva;
+
+	if (file_read (file_obj, kva, page_read_bytes) != (int)page_read_bytes) {
+		free (load_aux);
+		return false;
+	}
+
+	memset (kva + page_read_bytes, 0, page_zero_bytes);
+	free (load_aux);
+
+	file_seek (file_obj, ofs);
+
+	return true;
+}
