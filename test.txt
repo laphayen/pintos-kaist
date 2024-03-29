@@ -93,7 +93,7 @@ pass tests/vm/mmap-null
 pass tests/vm/mmap-over-code
 pass tests/vm/mmap-over-data
 pass tests/vm/mmap-over-stk
-FAIL tests/vm/mmap-remove
+pass tests/vm/mmap-remove
 pass tests/vm/mmap-zero
 pass tests/vm/mmap-bad-fd2
 pass tests/vm/mmap-bad-fd3
@@ -139,4 +139,4 @@ pass tests/threads/priority-sema
 pass tests/threads/priority-condvar
 pass tests/threads/priority-donate-chain
 FAIL tests/vm/cow/cow-simple
-12 of 141 tests failed.
+11 of 141 tests failed.
