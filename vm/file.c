@@ -32,10 +32,12 @@ file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
 
 	/* Memory Mapped Files */
 	struct load_aux *load_aux = (struct load_aux*)page->uninit.aux;
-	file_page->file = load_aux->file;
-	file_page->ofs = load_aux->ofs;
-	file_page->read_bytes = load_aux->read_bytes;
-	file_page->zero_bytes = load_aux->zero_bytes;
+	if (load_aux != NULL) {
+		file_page->file = load_aux->file;
+		file_page->ofs = load_aux->ofs;
+		file_page->read_bytes = load_aux->read_bytes;
+		file_page->zero_bytes = load_aux->zero_bytes;
+	}
 
 	return true;
 }
