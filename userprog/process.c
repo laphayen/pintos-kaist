@@ -381,10 +381,10 @@ process_exit (void) {
 	/* Denying Write to Executable */
 	file_close (curr->running);
 	
-	process_cleanup ();
-	
 	sema_up (&curr->wait_sema);
 	sema_down (&curr->free_sema);
+
+	process_cleanup ();
 }
 
 /* Argument Passing */
