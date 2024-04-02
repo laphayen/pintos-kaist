@@ -549,8 +549,12 @@ void
 		return false;
 	}
 
-	if (spt_find_page (&curr->spt, addr) || offset % PGSIZE) {
+	if (spt_find_page (&curr->spt, addr) || offset % PGSIZE != 0) {
 		return false;
+	}
+
+	if (fd == 0 || fd == 1) {
+		exit (-1);
 	}
 
 	return do_mmap (addr, length, writable, file_obj, offset);
