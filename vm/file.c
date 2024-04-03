@@ -29,6 +29,9 @@ file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
 	page->operations = &file_ops;
 
 	struct file_page *file_page = &page->file;
+	struct uninit_page *uninit =  &page->uninit;
+
+	memset(uninit, 0, sizeof (struct uninit_page));
 
 	/* Memory Mapped Files */
 	struct load_aux *load_aux = (struct load_aux*)page->uninit.aux;
