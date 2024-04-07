@@ -79,9 +79,8 @@ do_mmap (void *addr, size_t length, int writable,
 	struct file *file_obj = file_reopen (file);
 	struct page *page;
 	void *init_addr = addr;
-	int page_count = 1;
 
-	size_t read_bytes = length < PGSIZE ? PGSIZE : file_length (file);
+	size_t read_bytes = length > file_length(file) ? file_length (file) : length;
 	size_t zero_bytes = PGSIZE - read_bytes % PGSIZE;
 
 	while (read_bytes > 0 || zero_bytes > 0) {
@@ -94,20 +93,15 @@ do_mmap (void *addr, size_t length, int writable,
 		aux->ofs = offset;
 		aux->read_bytes = read_bytes;
 		aux->zero_bytes = zero_bytes;
-		aux->writable = writable;
 
 		if (!vm_alloc_page_with_initializer (VM_FILE, addr, writable, lazy_load_segment_file, aux)) {
 			return NULL;
 		}
 
-		page = spt_find_page (&curr->spt, addr);
-		page->page_count = page_count;
-
 		read_bytes -= page_read_bytes;
 		zero_bytes -= page_zero_bytes;
 		addr += PGSIZE;
 		offset += page_read_bytes;
-		page_count++;
 	}
 
 	return init_addr;
