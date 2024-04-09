@@ -537,6 +537,8 @@ void
 	struct thread *curr = thread_current ();
 	struct file *file_obj = process_get_file (fd);
 
+	lock_acquire (&filesys_lock);
+
 	if (file_obj == NULL || file_obj == STDIN || file_obj == STDOUT) {
 		return NULL;
 	}
@@ -556,6 +558,10 @@ void
 	if (fd == 0 || fd == 1) {
 		exit (-1);
 	}
+
+	lock_release (&filesys_lock);
+
+	// 파일 디스크립터 테이블에 매핑되지 않는 경우
 
 	return do_mmap (addr, length, writable, file_obj, offset);
 }
