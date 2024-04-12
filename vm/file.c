@@ -139,15 +139,13 @@ lazy_load_segment_file (struct page *page, void *aux) {
 
 	void *kva = page->frame->kva;
 
+	file_seek (file_obj, ofs);
+
 	if (file_read (file_obj, kva, page_read_bytes) != (int)page_read_bytes) {
-		free (load_aux);
 		return false;
 	}
 
 	memset (kva + page_read_bytes, 0, page_zero_bytes);
-	free (load_aux);
-
-	file_seek (file_obj, ofs);
 
 	return true;
 }
