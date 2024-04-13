@@ -77,6 +77,11 @@ do_mmap (void *addr, size_t length, int writable,
 		struct file *file, off_t offset) {
 	struct thread *curr = thread_current ();
 	struct file *file_obj = file_reopen (file);
+
+	if (file_obj == NULL) {
+		return NULL;
+	}
+
 	struct page *page;
 	void *init_addr = addr;
 
@@ -87,14 +92,13 @@ do_mmap (void *addr, size_t length, int writable,
 		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
-		ASSERT((read_bytes + zero_bytes) % PGSIZE == 0); 
-
 		struct load_aux *aux = (struct load_aux *) malloc (sizeof (struct load_aux));
 
 		aux->file = file_obj;
 		aux->ofs = offset;
 		aux->read_bytes = read_bytes;
 		aux->zero_bytes = zero_bytes;
+		aux->writable = writable;
 
 		if (!vm_alloc_page_with_initializer (VM_FILE, addr, writable, lazy_load_segment_file, aux)) {
 			return NULL;
