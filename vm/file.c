@@ -98,7 +98,8 @@ do_mmap (void *addr, size_t length, int writable,
 		aux->ofs = offset;
 		aux->read_bytes = read_bytes;
 		aux->zero_bytes = zero_bytes;
-		aux->writable = writable;
+
+		struct page *p = spt_find_page(&thread_current()->spt, init_addr);
 
 		if (!vm_alloc_page_with_initializer (VM_FILE, addr, writable, lazy_load_segment_file, aux)) {
 			return NULL;
