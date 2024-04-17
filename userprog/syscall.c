@@ -546,15 +546,20 @@ void
 	}
 
 	if (length == 0 || addr == NULL || addr + length == NULL) {
-		return false;
+		return NULL;
 	}
 
 	if (addr != pg_round_down (addr)) {
 		return NULL;
 	}
 
-	if (spt_find_page (&curr->spt, addr) || offset % PGSIZE != 0) {
-		return false;
+	if (offset % PGSIZE != 0) {
+		return NULL;
+	}
+	
+
+	if (spt_find_page (&curr->spt, addr)) {
+		return NULL;
 	}
 
 	if (fd == 0 || fd == 1) {
