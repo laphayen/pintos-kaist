@@ -121,6 +121,7 @@ do_mmap (void *addr, size_t length, int writable,
 		aux->ofs = offset;
 		aux->read_bytes = page_read_bytes;
 		aux->zero_bytes = page_zero_bytes;
+		aux->writable = writable;
 
 		struct page *p = spt_find_page(&thread_current()->spt, init_addr);
 
