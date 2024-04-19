@@ -40,6 +40,7 @@ file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
 		file_page->ofs = load_aux->ofs;
 		file_page->read_bytes = load_aux->read_bytes;
 		file_page->zero_bytes = load_aux->zero_bytes;
+		file_page->writable = load_aux->writable;
 	}
 
 	return true;
