@@ -82,6 +82,8 @@ file_backed_swap_out (struct page *page) {
 static void
 file_backed_destroy (struct page *page) {
 	struct file_page *file_page UNUSED = &page->file;
+	struct load_aux *load_aux = (struct load_aux*)page->uninit.aux;
+	struct file *file_obj = load_aux->file;
 	struct thread *curr = thread_current ();
 
 	if (pml4_is_dirty (&curr->pml4, page->va)) {
