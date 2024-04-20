@@ -545,18 +545,25 @@ void
 		return NULL;
 	}
 
-	if (length == 0 || addr == NULL || addr + length == NULL) {
+	if(!is_user_vaddr(pg_round_down(addr)) || !is_user_vaddr(pg_round_up(addr))){
 		return NULL;
 	}
 
-	if (addr != pg_round_down (addr)) {
+	if (addr == 0 || length == 0 || addr == NULL || addr + length == NULL) {
+		return NULL;
+	}
+
+	if (addr != pg_round_down (addr) || offset != pg_round_down(offset)) {
 		return NULL;
 	}
 
 	if (offset % PGSIZE != 0) {
 		return NULL;
 	}
-	
+
+	if (length <= 0) {
+		return NULL;
+	}
 
 	if (spt_find_page (&curr->spt, addr)) {
 		return NULL;
