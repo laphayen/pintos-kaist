@@ -118,21 +118,19 @@ do_mmap (void *addr, size_t length, int writable,
 		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
-		struct load_aux *aux = (struct load_aux *) malloc (sizeof (struct load_aux));
+		struct load_aux *load_aux = (struct load_aux *) malloc (sizeof (struct load_aux));
 
-		aux->file = file_obj;
-		aux->ofs = offset;
-		aux->read_bytes = page_read_bytes;
-		aux->zero_bytes = page_zero_bytes;
-		aux->writable = writable;
+		load_aux->file = file_obj;
+		load_aux->ofs = offset;
+		load_aux->read_bytes = page_read_bytes;
+		load_aux->zero_bytes = page_zero_bytes;
 
-		struct page *p = spt_find_page(&thread_current()->spt, init_addr);
-
-		if (!vm_alloc_page_with_initializer (VM_FILE, addr, writable, lazy_load_segment_file, aux)) {
+		// load_segment 호출을 두 번 해서 적용되는 문제인가?
+		if (!vm_alloc_page_with_initializer (VM_FILE, addr, writable, lazy_load_segment_file, load_aux)) {
 			return NULL;
 		}
 
-		struct page *page = spt_find_page (&thread_current ()->spt, init_addr);
+		struct page *p = spt_find_page (&curr->spt, init_addr);
 
 		read_bytes -= page_read_bytes;
 		zero_bytes -= page_zero_bytes;
